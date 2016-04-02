@@ -6,7 +6,7 @@
 "C:\Program Files\SyncFiles\SyncFiles.exe" 192.168.0.2<br>
 Для того, чтобы приложение при приеме файлов не спрашивал подтверждение необходимо добавить IP адрес отправляющей стороны в файл "Allow.txt".
 
-**[Скачать последнюю версию](https://github.com/r57zone/Sync-Files/releases)**
+**[Скачать последнюю версию](https://github.com/r57zone/eFile/releases)**
 
 **Обратная связь**: r57zone[собака]gmail.com 
 
@@ -18,7 +18,7 @@ In order not to enter the IP address, you can run the application with a paramet
 "C:\Program Files\SyncFiles\SyncFiles.exe" 192.168.0.2<br>
 In order to file an application at the reception did not ask confirmation, you must add the IP address of the sending party to file "Allow.txt".
 
-**[Download the latest version](https://github.com/r57zone/Sync-Files/releases)**
+**[Download the latest version](https://github.com/r57zone/eFile/releases)**
 
 If you need a program with an English translation, please write to email and I'll receive it soon.
 
