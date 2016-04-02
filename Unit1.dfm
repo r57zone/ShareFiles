@@ -3,7 +3,7 @@ object Form1: TForm1
   Top = 124
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
-  Caption = 'eFile'
+  Caption = 'eFile w'
   ClientHeight = 173
   ClientWidth = 350
   Color = clBtnFace

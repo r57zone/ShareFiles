@@ -66,6 +66,11 @@ procedure TForm1.FormCreate(Sender: TObject);
 var
 Ini:TIniFile;
 begin
+if FindWindow('TForm1', 'eFile') <> 0 then begin
+SetForegroundWindow(FindWindow('TForm1', 'eFile'));
+Halt;
+end;
+Caption:='eFile';
 Address:=ParamStr(1);
 Ini:=TIniFile.Create(ExtractFilePath(paramstr(0))+'setup.ini');
 Path:=Ini.ReadString('Main','Path','');
