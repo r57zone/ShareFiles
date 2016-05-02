@@ -16,6 +16,7 @@ object Form1: TForm1
   Position = poDesktopCenter
   OnClose = FormClose
   OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
   PixelsPerInch = 96
   TextHeight = 13
   object Label1: TLabel
@@ -47,8 +48,7 @@ object Form1: TForm1
   object ClientSocket1: TClientSocket
     Active = False
     ClientType = ctNonBlocking
-    Host = '127.0.0.1'
-    Port = 4745
+    Port = 0
     OnDisconnect = ClientSocket1Disconnect
     OnRead = ClientSocket1Read
     OnError = ClientSocket1Error
@@ -57,15 +57,16 @@ object Form1: TForm1
   end
   object ServerSocket1: TServerSocket
     Active = False
-    Port = 4745
+    Port = 0
     ServerType = stNonBlocking
     OnClientConnect = ServerSocket1ClientConnect
     OnClientRead = ServerSocket1ClientRead
+    OnClientError = ServerSocket1ClientError
     Left = 48
     Top = 16
   end
   object XPManifest1: TXPManifest
-    Left = 88
-    Top = 24
+    Left = 80
+    Top = 16
   end
 end
