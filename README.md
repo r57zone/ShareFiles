@@ -4,6 +4,7 @@
 Для того, чтобы не вводить IP адрес можно запускать программу с параметром.<br>
 **Пример:**<br>
 "C:\Program Files\eFile\eFile.exe" 192.168.0.2<br>
+<br>
 Для того, чтобы программа при приеме файлов не спрашивала подтверждение необходимо добавить IP адрес отправляющей стороны в файл "Allow.txt".
 
 **[Скачать последнюю версию](https://github.com/r57zone/eFile/releases)**
@@ -15,7 +16,7 @@
 **eFile** - program for send files in lan. Simply drag the files into the program and enter the IP address. On the receiving files computer also need to run the program.<br>
 In order not to enter the IP address, you can run the program with a parameter.<br>
 **Example:**<br>
-"C:\Program Files\eFile\eFile.exe" 192.168.0.2<br>
+"C:\Program Files\eFile\eFile.exe" 192.168.0.2<br><br>
 In order to file an program at the reception did not ask confirmation, you must add the IP address of the sending party to file "Allow.txt".
 
 **[Download the latest version](https://github.com/r57zone/eFile/releases)**
