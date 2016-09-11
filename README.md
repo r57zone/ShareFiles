@@ -1,26 +1,37 @@
-<h2>RU:</h2>
-**eFile** - программа для передачи файлов по сети. Просто перенесите файлы в программу и введите IP адрес. На принимающем файлы компьютере также необходимо запустить программу.<br>
-![screen](https://cloud.githubusercontent.com/assets/9499881/14226602/6db2e9be-f8f7-11e5-975a-56b619604d2b.PNG)<br>
+# eFile (Ru)
+Приложение для передачи файлов в сети.<br>
+
+## Скриншоты
+![](https://cloud.githubusercontent.com/assets/9499881/18416699/9b152638-782c-11e6-88be-1bf9b9dc4636.png)
+
+##Настройка
+Для отправки файлов необходимо запустить приложение на двух компьютерах. На компьютере отправителя необходимо перенести нужные файлы в интерфейс приложения (Drag-and-drop) и ввести IP адрес, после чего начнется отправка файлов.<br><br>
 Для того, чтобы не вводить IP адрес можно запускать программу с параметром.<br>
 **Пример:**<br>
-"C:\Program Files\eFile\eFile.exe" 192.168.0.2<br>
-<br>
-Для того, чтобы программа при приеме файлов не спрашивала подтверждение необходимо добавить IP адрес отправляющей стороны в файл "Allow.txt".
+>C:\Program Files\eFile\eFile.exe" 192.168.0.2
 
-**[Скачать последнюю версию](https://github.com/r57zone/eFile/releases)**
+<br>Для того, чтобы программа при приеме файлов не спрашивала подтверждение необходимо добавить IP адрес отправляющей стороны в файл "Allow.txt".
 
-**Обратная связь**: r57zone[собака]gmail.com 
+## Загрузка
+>Версия для Windows XP, ReactOS, Windows 7, Windows 8.1, Windows 10.<br>
+**[Загрузить](https://github.com/r57zone/eFile/releases)**
 
-<h2>EN:</h2>
+## Обратная связь
+`r57zone[собака]gmail.com`
 
-**eFile** - program for send files in lan. Simply drag the files into the program and enter the IP address. On the receiving files computer also need to run the program.<br>
-In order not to enter the IP address, you can run the program with a parameter.<br>
+# eFile (En)
+Application for download podcasts. Enter rss feeds manually or import OPML file to download the latest podcasts. Application partially support [standard modular programs](https://github.com/r57zone/Standard-modular-program).
+
+## Setup
+To send files, you must run the application on two computers. On the computer the sender you want to transfer your files in the application interface (Drag-and-drop), and enter the IP address, and then begin sending files.<br><br>
 **Example:**<br>
-"C:\Program Files\eFile\eFile.exe" 192.168.0.2<br><br>
-In order to file an program at the reception did not ask confirmation, you must add the IP address of the sending party to file "Allow.txt".
+>C:\Program Files\eFile\eFile.exe" 192.168.0.2
 
-**[Download the latest version](https://github.com/r57zone/eFile/releases)**
+<br>In order to file an program at the reception did not ask confirmation, you must add the IP address of the sending party to file "Allow.txt".
 
-If you need a program with an English translation, please write to email and I'll will build it soon.
+## Download
+>Version for Windows XP, ReactOS, Windows 7, Windows 8.1, Windows 10.<br>
+**[Download](https://github.com/r57zone/eFile/releases)**
 
-**Feedback:** r57zone[at]gmail.com
+## Feedback
+`r57zone[at]gmail.com`
