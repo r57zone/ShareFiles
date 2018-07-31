@@ -22,9 +22,9 @@ object Main: TMain
   object LblInfo: TLabel
     Left = 111
     Top = 72
-    Width = 127
+    Width = 130
     Height = 13
-    Caption = #1055#1077#1088#1077#1085#1077#1089#1080#1090#1077' '#1089#1102#1076#1072' '#1092#1072#1081#1083#1099
+    Caption = #1055#1077#1088#1077#1085#1077#1089#1080#1090#1077' '#1092#1072#1081#1083#1099' '#1089#1102#1076#1072' '
   end
   object ProgressBar: TProgressBar
     Left = 0
