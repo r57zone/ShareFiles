@@ -1,9 +1,9 @@
-object Form1: TForm1
+object Main: TMain
   Left = 192
   Top = 124
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
-  Caption = 'eFile w'
+  Caption = 'eFile current'
   ClientHeight = 173
   ClientWidth = 350
   Color = clBtnFace
@@ -19,14 +19,14 @@ object Form1: TForm1
   OnKeyDown = FormKeyDown
   PixelsPerInch = 96
   TextHeight = 13
-  object Label1: TLabel
-    Left = 88
+  object LblInfo: TLabel
+    Left = 111
     Top = 72
-    Width = 169
+    Width = 127
     Height = 13
-    Caption = #1055#1077#1088#1077#1085#1077#1089#1080#1090#1077' '#1092#1072#1081#1083#1099' '#1076#1083#1103' '#1086#1090#1087#1088#1072#1074#1082#1080
+    Caption = #1055#1077#1088#1077#1085#1077#1089#1080#1090#1077' '#1089#1102#1076#1072' '#1092#1072#1081#1083#1099
   end
-  object ProgressBar1: TProgressBar
+  object ProgressBar: TProgressBar
     Left = 0
     Top = 134
     Width = 350
@@ -36,37 +36,37 @@ object Form1: TForm1
     TabOrder = 0
     Visible = False
   end
-  object StatusBar1: TStatusBar
+  object StatusBar: TStatusBar
     Left = 0
     Top = 154
     Width = 350
     Height = 19
     Panels = <>
     SimplePanel = True
-    OnClick = StatusBar1Click
+    OnClick = StatusBarClick
   end
-  object ClientSocket1: TClientSocket
+  object ClientSocket: TClientSocket
     Active = False
     ClientType = ctNonBlocking
     Port = 0
-    OnDisconnect = ClientSocket1Disconnect
-    OnRead = ClientSocket1Read
-    OnError = ClientSocket1Error
-    Left = 16
-    Top = 16
+    OnDisconnect = ClientSocketDisconnect
+    OnRead = ClientSocketRead
+    OnError = ClientSocketError
+    Left = 40
+    Top = 8
   end
-  object ServerSocket1: TServerSocket
+  object ServerSocket: TServerSocket
     Active = False
     Port = 0
     ServerType = stNonBlocking
-    OnClientConnect = ServerSocket1ClientConnect
-    OnClientRead = ServerSocket1ClientRead
-    OnClientError = ServerSocket1ClientError
-    Left = 48
-    Top = 16
+    OnClientConnect = ServerSocketClientConnect
+    OnClientRead = ServerSocketClientRead
+    OnClientError = ServerSocketClientError
+    Left = 72
+    Top = 8
   end
-  object XPManifest1: TXPManifest
-    Left = 80
-    Top = 16
+  object XPManifest: TXPManifest
+    Left = 8
+    Top = 8
   end
 end

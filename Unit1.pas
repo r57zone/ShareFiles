@@ -4,78 +4,69 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ScktComp, StdCtrls, XPMan, ComCtrls, ShellAPI, ExtCtrls, IniFiles, ShlObj;
+  Dialogs, ScktComp, StdCtrls, XPMan, ComCtrls, ShellAPI, ExtCtrls, IniFiles;
 
 type
-  TForm1 = class(TForm)
-    ClientSocket1: TClientSocket;
-    ServerSocket1: TServerSocket;
-    XPManifest1: TXPManifest;
-    ProgressBar1: TProgressBar;
-    StatusBar1: TStatusBar;
-    Label1: TLabel;
+  TMain = class(TForm)
+    ClientSocket: TClientSocket;
+    ServerSocket: TServerSocket;
+    XPManifest: TXPManifest;
+    ProgressBar: TProgressBar;
+    StatusBar: TStatusBar;
+    LblInfo: TLabel;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
-    procedure ClientSocket1Read(Sender: TObject; Socket: TCustomWinSocket);
-    procedure ClientSocket1Error(Sender: TObject; Socket: TCustomWinSocket;
+    procedure ClientSocketRead(Sender: TObject; Socket: TCustomWinSocket);
+    procedure ClientSocketError(Sender: TObject; Socket: TCustomWinSocket;
       ErrorEvent: TErrorEvent; var ErrorCode: Integer);
-    procedure StatusBar1Click(Sender: TObject);
-    procedure ClientSocket1Disconnect(Sender: TObject;
+    procedure StatusBarClick(Sender: TObject);
+    procedure ClientSocketDisconnect(Sender: TObject;
       Socket: TCustomWinSocket);
-    procedure ServerSocket1ClientConnect(Sender: TObject;
+    procedure ServerSocketClientConnect(Sender: TObject;
       Socket: TCustomWinSocket);
-    procedure ServerSocket1ClientRead(Sender: TObject;
+    procedure ServerSocketClientRead(Sender: TObject;
       Socket: TCustomWinSocket);
     procedure FormKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
-    procedure ServerSocket1ClientError(Sender: TObject;
+    procedure ServerSocketClientError(Sender: TObject;
       Socket: TCustomWinSocket; ErrorEvent: TErrorEvent;
       var ErrorCode: Integer);
   protected
     procedure WMDropFiles (var Msg: TMessage); message wm_DropFiles;
   private
-    function AddDir(FolderPath:string):boolean;
-    function AddFile(FilePath:string):boolean;
-    function Send:boolean;
+    function AddDir(FolderPath: string): boolean;
+    function AddFile(FilePath: string): boolean;
+    function Send: boolean;
     { Private declarations }
   public
     { Public declarations }
   end;
 
 var
-  Form1: TForm1;
-  LastRequest,LastFile,LocalPath,Path,Address:string;
-  FileList,AllwLs:TStringList;
-  SendFilesCount,SendedFilesCount:int64;
-  RcvFlsRep:integer;
-  AlwRcvFls:boolean;
-  BreakAll,Receive:boolean;
-  FSize,ReceiveFilesCount,ReceivedFilesCount:int64;
+  Main: TMain;
+  LastRequest, LastFile, LocalPath, CurPath, Address:string;
+  FileList, AllwLs: TStringList;
+  SendFilesCount, SendedFilesCount: int64;
+  RcvFlsRep: integer;
+  AlwRcvFls: boolean;
+  BreakAll, Receive: boolean;
+  FSize, ReceiveFilesCount, ReceivedFilesCount: int64;
   FStream: TFileStream;
 
 implementation
 
 {$R *.dfm}
 
-function xGetFileSize(const FileName: String):int64;
+function GetFileSize(const FileName: string): int64;
 var
   s: TSearchRec;
 begin
-  FindFirst(FileName, faAnyFile, s);
-  Result:=(Int64(s.FindData.nFileSizeHigh)*MAXDWORD)+Int64(s.FindData.nFileSizeLow);
-  FindClose(s);
+   FindFirst(FileName, faAnyFile, s);
+   Result:=(int64(s.FindData.nFileSizeHigh) * MAXDWORD) + int64(s.FindData.nFileSizeLow);
+   FindClose(s);
 end;
 
-function GetSpecialPath(CSIDL: word): string;
-var
-  s:string;
-begin
-  SetLength(s, MAX_PATH);
-  if not SHGetSpecialFolderPath(0, PChar(s), CSIDL, true) then s:='';
-  result:=PChar(s);
-end;
-
-function asmIsNumb(s: string): boolean;
+function IsNum(s: string): boolean;
 asm
 	push	esi
   mov   esi,eax
@@ -96,52 +87,65 @@ asm
   pop   esi
 end;
 
-procedure TForm1.FormCreate(Sender: TObject);
+procedure TMain.FormCreate(Sender: TObject);
 var
-  Ini:TIniFile;
+  Ini: TIniFile;
 begin
   //Проверка на повторый запуск
-  if FindWindow('TForm1', 'eFile') <> 0 then begin
-  SetForegroundWindow(FindWindow('TForm1', 'eFile'));
-  Halt;
+  if FindWindow('TMain', 'eFile') <> 0 then begin
+    SetForegroundWindow(FindWindow('TMain', 'eFile'));
+    Halt;
   end;
   Caption:='eFile';
+  Application.Title:=Caption;
+
   //Адрес передачи по умолчанию
   Address:=ParamStr(1);
 
-  Ini:=TIniFile.Create(ExtractFilePath(paramstr(0))+'setup.ini');
-  ClientSocket1.Port:=Ini.ReadInteger('Main','Port',5371);
-  ServerSocket1.Port:=Ini.ReadInteger('Main','Port',5371);
-  Path:=Ini.ReadString('Main','Path','');
-  if Trim(Path)='' then Path:=GetSpecialPath(CSIDL_DESKTOP);
+  Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Setup.ini');
+  ClientSocket.Port:=Ini.ReadInteger('Main', 'Port', 5371);
+  ServerSocket.Port:=Ini.ReadInteger('Main', 'Port', 5371);
+  CurPath:=Ini.ReadString('Main', 'Path', '');
+  if Trim(CurPath) = '' then
+    CurPath:=GetEnvironmentVariable('USERPROFILE') + '\Desktop\';
   Ini.Free;
-  if FileExists(ExtractFilePath(paramstr(0))+'Allow.txt') then begin AllwLs:=TStringList.Create; AllwLs.LoadFromFile(ExtractFilePath(paramstr(0))+'Allow.txt'); end;
-  Application.Title:=Caption;
-  DragAcceptFiles(Form1.Handle,true);
+
+  if FileExists(ExtractFilePath(ParamStr(0)) + 'Allow.txt') then begin
+    AllwLs:=TStringList.Create;
+    AllwLs.LoadFromFile(ExtractFilePath(ParamStr(0)) + 'Allow.txt');
+  end;
+
+  DragAcceptFiles(Main.Handle,true);
   FileList:=TStringList.Create;
-  ServerSocket1.Active:=true;
+  ServerSocket.Active:=true;
 end;
 
-procedure TForm1.FormClose(Sender: TObject; var Action: TCloseAction);
+procedure TMain.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
   if Assigned(AllwLs) then AllwLs.Free;
   FileList.Free;
-  if ClientSocket1.Active then ClientSocket1.Active:=false;
-  if ServerSocket1.Active then ServerSocket1.Active:=false;
+  if ClientSocket.Active then
+    ClientSocket.Active:=false;
+  if ServerSocket.Active then
+    ServerSocket.Active:=false;
 end;
 
-procedure TForm1.WMDropFiles(var Msg: TMessage);
+procedure TMain.WMDropFiles(var Msg: TMessage);
 var
   i, Amount, Size:integer;
-  Filename: PChar;
+  FileName: PChar;
   RunOnce:boolean;
 begin
-  if Trim(Address)='' then InputQuery(Caption,'Введите IP адрес:',Address);
-  if Trim(Address)='' then BreakAll:=true;
+  if Trim(Address)='' then
+    InputQuery(Caption, 'Введите IP адрес:', Address);
 
-  ClientSocket1.Host:=Address;
-  StatusBar1.SimpleText:=' Подключение';
-  if ClientSocket1.Active=false then ClientSocket1.Active:=true;
+  if Trim(Address)='' then
+    BreakAll:=true;
+
+  ClientSocket.Host:=Address;
+  StatusBar.SimpleText:=' Подключение';
+  if ClientSocket.Active = false then
+    ClientSocket.Active:=true;
 
   BreakAll:=false;
   FileList.Clear;
@@ -149,22 +153,26 @@ begin
   RunOnce:=false;
 
   //Ждем разрешения на передачу файлов
-  while RcvFlsRep<>1 do begin
-    if (RcvFlsRep=2) or (RcvFlsRep=3) then begin BreakAll:=true; Break; end;
+  while RcvFlsRep <> 1 do begin
+    if (RcvFlsRep = 2) or (RcvFlsRep = 3) then begin
+      BreakAll:=true;
+      Break;
+    end;
     Application.ProcessMessages;
   end;
 
   case RcvFlsRep of
-    2: StatusBar1.SimpleText:=' Пользователь не одобрил передачу файлов';
-    3: StatusBar1.SimpleText:=' Не удалось подключиться';
+    2: StatusBar.SimpleText:=' Пользователь не одобрил передачу файлов';
+    3: StatusBar.SimpleText:=' Не удалось подключиться';
   end;
 
   //В случае отмены или неудачи выходим
-  if BreakAll then Exit;
+  if BreakAll then
+    Exit;
 
-  ProgressBar1.Visible:=true;
+  ProgressBar.Visible:=true;
 
-  //Обработка Drag&Drop
+  //Обработка Drag & Drop
   inherited;
   Amount:=DragQueryFile(Msg.WParam, $FFFFFFFF, Filename, 255);
   for i:=0 to (Amount - 1) do begin
@@ -173,15 +181,22 @@ begin
     DragQueryFile(Msg.WParam, i, Filename, Size);
 
     //В случае отмены или неудачи выходим
-    if BreakAll then Exit;
+    if BreakAll then
+      Exit;
 
     //Узнаем папку передаваемых файлов
-    if RunOnce=false then begin LocalPath:=ExtractFilePath(StrPas(FileName)); RunOnce:=true; end;
-    if Length(ExtractFilePath(StrPas(FileName)))<Length(LocalPath) then LocalPath:=ExtractFilePath(StrPas(FileName));
+    if RunOnce = false then begin
+      LocalPath:=ExtractFilePath(StrPas(FileName));
+      RunOnce:=true;
+    end;
 
+    if Length(ExtractFilePath(StrPas(FileName))) < Length(LocalPath) then
+      LocalPath:=ExtractFilePath(StrPas(FileName));
 
-    if FileExists(StrPas(Filename)) then AddFile(StrPas(Filename)) else
-      if DirectoryExists(StrPas(Filename)) then AddDir(StrPas(Filename));
+    if FileExists(StrPas(Filename)) then
+      AddFile(StrPas(Filename))
+    else if DirectoryExists(StrPas(Filename)) then
+      AddDir(StrPas(Filename));
 
     StrDispose(Filename);
   end;
@@ -189,70 +204,92 @@ begin
   DragFinish(Msg.WParam);
 
   //Считаем количество файлов
-  for i:=0 to FileList.Count-1 do
-    if copy(FileList.Strings[i],1,5)='FILE ' then inc(SendFilesCount);
+  for i:=0 to FileList.Count - 1 do
+    if Copy(FileList.Strings[i], 1, 5) = 'FILE ' then inc(SendFilesCount);
 
   //Передаем количество файлов
-  LastRequest:='%FILES_COUNT '+IntToStr(SendFilesCount)+'%';
-  ClientSocket1.Socket.SendText(LastRequest);
+  LastRequest:='%FILES_COUNT ' + IntToStr(SendFilesCount) + '%';
+  ClientSocket.Socket.SendText(LastRequest);
 end;
 
-procedure TForm1.ClientSocket1Read(Sender: TObject;
+procedure TMain.ClientSocketRead(Sender: TObject;
   Socket: TCustomWinSocket);
 var
-  RcvText:string;
+  RcvText: string;
 begin
   RcvText:=Socket.ReceiveText;
+
   //Последний запрос, в случае неудачной отправки или приема, можно запросить повторно
-  if pos('%LAST_REQUEST%',RcvText)>0 then Socket.SendText(LastRequest);
+  if Pos('%LAST_REQUEST%', RcvText) > 0 then
+    Socket.SendText(LastRequest);
 
-  if pos('%SUCESS_FILE%',RcvText)>0 then begin Send; inc(SendedFilesCount); end;
-  if pos('%SUCESS_DIR%',RcvText)>0 then Send;
-  if pos('%FILES_COUNT_OK%',RcvText)>0 then Send;
+  if Pos('%SUCESS_FILE%', RcvText) > 0 then begin
+    Send;
+    inc(SendedFilesCount);
+  end;
 
-  if pos('%FILES_ALLOW_OK%',RcvText)>0 then begin RcvFlsRep:=1; SendedFilesCount:=0; end;
+  if Pos('%SUCESS_DIR%', RcvText) > 0 then
+    Send;
+
+  if Pos('%FILES_COUNT_OK%', RcvText) > 0 then
+    Send;
+
+  if Pos('%FILES_ALLOW_OK%', RcvText) > 0 then begin
+    RcvFlsRep:=1;
+    SendedFilesCount:=0;
+  end;
 
   //Команда на передачу файла
-  if pos('%SEND%',RcvText)>0 then begin ProgressBar1.Position:=0; ProgressBar1.Visible:=true; StatusBar1.SimpleText:=' Идет передача файлов ('+IntToStr(SendedFilesCount)+' из '+IntToStr(SendFilesCount)+')'; ClientSocket1.Socket.SendStream(TFileStream.Create(LastFile, fmOpenRead or fmShareDenyWrite)); end;
+  if Pos('%SEND%', RcvText) > 0 then begin
+    ProgressBar.Position:=0;
+    ProgressBar.Visible:=true;
+    StatusBar.SimpleText:=' Идет передача файлов (' + IntToStr(SendedFilesCount) + ' из ' + IntToStr(SendFilesCount) + ')';
+    ClientSocket.Socket.SendStream(TFileStream.Create(LastFile, fmOpenRead or fmShareDenyWrite));
+  end;
 
-  if (RcvText[1]='%') and (RcvText[Length(RcvText)]='%') then begin
-    if copy(RcvText,1,14)='%PROGRESS_BAR ' then begin
-      delete(RcvText,1,14);
-      RcvText:=copy(RcvText,1,pos('%',RcvText)-1);
-      if asmIsNumb(RcvText) then ProgressBar1.Position:=StrToInt(RcvText);
+  if (RcvText[1] = '%') and (RcvText[Length(RcvText)] = '%') then begin
+    if Copy(RcvText, 1, 14) = '%PROGRESS_BAR ' then begin
+      Delete(RcvText, 1, 14);
+      RcvText:=Copy(RcvText, 1, Pos('%', RcvText) - 1);
+      if IsNum(RcvText) then
+        ProgressBar.Position:=StrToInt(RcvText);
     end;
   end;
 end;
 
-procedure TForm1.ClientSocket1Error(Sender: TObject;
+procedure TMain.ClientSocketError(Sender: TObject;
   Socket: TCustomWinSocket; ErrorEvent: TErrorEvent;
   var ErrorCode: Integer);
 begin
   BreakAll:=true;
   case ErrorCode of
-    10061: StatusBar1.SimpleText:=' Не удалось подключиться';
-  else StatusBar1.SimpleText:=' Подключение потеряно';
+    10061: StatusBar.SimpleText:=' Не удалось подключиться';
+  else
+    StatusBar.SimpleText:=' Подключение потеряно';
   end;
   RcvFlsRep:=3;
   ErrorCode:=0;
 end;
 
-procedure TForm1.StatusBar1Click(Sender: TObject);
+procedure TMain.StatusBarClick(Sender: TObject);
 begin
-  Application.MessageBox('eFile 0.7'+#13#10+'https://github.com/r57zone'+#13#10+'Последнее обновление: 03.05.2016','О программе...',0);
+  Application.MessageBox(PChar(Caption + ' 0.7.1' + #13#10 +
+  'Последнее обновление: 31.07.2018' + #13#10 +
+  'https://r57zone.github.io' + #13#10 +
+  'r57zone@gmail.com'), 'О программе...', MB_ICONINFORMATION);
 end;
 
-procedure TForm1.ClientSocket1Disconnect(Sender: TObject;
+procedure TMain.ClientSocketDisconnect(Sender: TObject;
   Socket: TCustomWinSocket);
 begin
-RcvFlsRep:=3;
+  RcvFlsRep:=3;
 end;
 
-procedure TForm1.ServerSocket1ClientConnect(Sender: TObject;
+procedure TMain.ServerSocketClientConnect(Sender: TObject;
   Socket: TCustomWinSocket);
 begin
   //Разрешаем только одно подключение
-  if ServerSocket1.Socket.ActiveConnections=1 then begin
+  if ServerSocket.Socket.ActiveConnections = 1 then begin
     AlwRcvFls:=false;
     FStream:=nil;
     BreakAll:=false;
@@ -260,64 +297,70 @@ begin
     ReceivedFilesCount:=0;
 
   //Проверяем есть ли в списке "Allow.txt" адрес, чтобы не запрашивать подверждение
-  if Assigned(AllwLs) then if pos(Socket.RemoteAddress,AllwLs.Text)>0 then begin
-    AlwRcvFls:=true; ServerSocket1.Socket.Connections[0].SendText('%FILES_ALLOW_OK%'); end else
-    case MessageBox(Handle,Pchar('Разрешить подключение '+Socket.RemoteHost+' '+Socket.RemoteAddress),PChar(Caption),35) of
-      6: begin AlwRcvFls:=true; ServerSocket1.Socket.Connections[0].SendText('%FILES_ALLOW_OK%'); end;
+  if (Assigned(AllwLs)) and (Pos(Socket.RemoteAddress, AllwLs.Text) > 0) then begin
+    AlwRcvFls:=true;
+    ServerSocket.Socket.Connections[0].SendText('%FILES_ALLOW_OK%');
+  end else
+    case MessageBox(Handle, PChar('Разрешить подключение ' + Socket.RemoteHost + ' ' + Socket.RemoteAddress), PChar(Caption), 35) of
+      6: begin
+          AlwRcvFls:=true;
+          ServerSocket.Socket.Connections[0].SendText('%FILES_ALLOW_OK%');
+        end;
       7: Socket.Close;
       2: Socket.Close;
     end;
-  end else Socket.Close;
+  end else
+    Socket.Close;
 end;
 
 //Количество символов в строке
-function CountCharStr(Symb:char;Str:string):integer;
+function CountCharStr(Symb: Char; Str: string): integer;
 var
-  i:integer;
+  i: integer;
 begin
   Result:=0;
   for i:=1 to Length(Str) do
-    if Str[i]=Symb then Result:=Result+1;
+    if Str[i] = Symb then
+      Result:=Result + 1;
 end;
 
-procedure TForm1.ServerSocket1ClientRead(Sender: TObject;
+procedure TMain.ServerSocketClientRead(Sender: TObject;
   Socket: TCustomWinSocket);
 var
-  iLen: Integer;
+  iLen: integer;
   Bfr: Pointer;
-  FName,RcvText:string;
+  FName, RcvText: string;
 begin
-
   //В случае отмены или неудачи выходим
   if BreakAll then begin
     Receive:=false;
     FStream.Free;
-    ProgressBar1.Visible:=false;
-    StatusBar1.SimpleText:=' Передача файлов прервана';
+    ProgressBar.Visible:=false;
+    StatusBar.SimpleText:=' Передача файлов прервана';
     Exit;
   end;
 
   //Прием файла
   if Receive then begin
-    StatusBar1.SimpleText:=' Идет прием файла ('+IntToStr(ReceivedFilesCount)+' из '+IntToStr(ReceiveFilesCount)+')';
+    StatusBar.SimpleText:=' Идет прием файла (' + IntToStr(ReceivedFilesCount) + ' из ' + IntToStr(ReceiveFilesCount) + ')';
     iLen:=Socket.ReceiveLength;
     GetMem(Bfr, iLen);
     try
       Socket.ReceiveBuf(Bfr^, iLen);
       FStream.Write(Bfr^, iLen);
-      ProgressBar1.Position:=(FStream.Size*100) div FSize;
-      Socket.SendText('%PROGRESS_BAR '+IntToStr(ProgressBar1.Position)+'%');
+      ProgressBar.Position:=(FStream.Size*100) div FSize;
+      Socket.SendText('%PROGRESS_BAR ' + IntToStr(ProgressBar.Position) + '%');
 
-      if FStream.Size=FSize then begin //Завершаем если размер соответствует размеру оригигала
+      if FStream.Size = FSize then begin //Завершаем если размер соответствует размеру оригигала
         Receive:=false;
         FStream.Free;
         Socket.SendText('%SUCESS_FILE%');
         inc(ReceivedFilesCount);
-        if (ReceiveFilesCount=ReceivedFilesCount) then begin
-          StatusBar1.SimpleText:=' Все файлы успешно переданы';
+        if (ReceiveFilesCount = ReceivedFilesCount) then begin
+          StatusBar.SimpleText:=' Все файлы успешно переданы';
           ReceivedFilesCount:=0;
-          ProgressBar1.Visible:=false;
-          ProgressBar1.Position:=0;
+          ProgressBar.Visible:=false;
+          ProgressBar.Position:=0;
         end;
       end;
     finally
@@ -328,35 +371,37 @@ begin
     //Прием команд
     RcvText:=Socket.ReceiveText;
 
-
-    if (RcvText[1]='%') and (RcvText[Length(RcvText)]='%') and (CountCharStr('%',RcvText)=2) then begin
+    if (RcvText[1] = '%') and (RcvText[Length(RcvText)] = '%') and (CountCharStr('%', RcvText) = 2) then begin
 
       //Создание папки
-      if copy(RcvText,1,5)='%DIR ' then begin
-        delete(RcvText,1,5);
-        FName:=copy(RcvText,1,pos('%',RcvText)-1);
-        if not (DirectoryExists(Path+'\'+FName)) then CreateDir(Path+'\'+FName);
+      if Copy(RcvText, 1, 5) = '%DIR ' then begin
+        Delete(RcvText, 1, 5);
+        FName:=Copy(RcvText, 1, Pos('%', RcvText) - 1);
+        if not (DirectoryExists(CurPath + '\' + FName)) then
+          CreateDir(CurPath + '\' + FName);
         Socket.SendText('%SUCESS_DIR%');
       end;
 
       //Создание файла
-      if copy(RcvText,1,6)='%FILE ' then begin
-          delete(RcvText,1,6);
-          FName:=copy(RcvText,1,pos('@',RcvText)-1);
-          delete(RcvText,1,pos('@',RcvText));
-          FSize:=StrToInt((copy(RcvText,1,pos('%',RcvText)-1)));
-          FStream:=TFileStream.Create(Path+'\'+FName, fmCreate or fmShareDenyWrite);
+      if Copy(RcvText, 1, 6) = '%FILE ' then begin
+          Delete(RcvText, 1, 6);
+          FName:=Copy(RcvText, 1, Pos('@', RcvText) - 1);
+          Delete(RcvText, 1, Pos('@', RcvText));
+          FSize:=StrToInt((Copy(RcvText, 1, Pos('%', RcvText) - 1)));
+          FStream:=TFileStream.Create(CurPath + '\' + FName, fmCreate or fmShareDenyWrite);
 
-          if FSize<>0 then Receive:=true else begin //Пустые файлы
+          if FSize <> 0 then
+            Receive:=true
+          else begin //Пустые файлы
             Receive:=false;
             FStream.Free;
             Socket.SendText('%SUCESS_FILE%');
             inc(ReceivedFilesCount);
-            if (ReceiveFilesCount=ReceivedFilesCount) then begin
-              StatusBar1.SimpleText:=' Все файлы успешно переданы';
+            if (ReceiveFilesCount = ReceivedFilesCount) then begin
+              StatusBar.SimpleText:=' Все файлы успешно переданы';
               ReceivedFilesCount:=0;
-              ProgressBar1.Visible:=false;
-              ProgressBar1.Position:=0;
+              ProgressBar.Visible:=false;
+              ProgressBar.Position:=0;
             end;
           end;
 
@@ -365,38 +410,42 @@ begin
       end;
 
       //Количество файлов для передачи
-      if copy(RcvText,1,13)='%FILES_COUNT ' then begin
-        delete(RcvText,1,13);
-        ReceiveFilesCount:=StrToInt(copy(RcvText,1,pos('%',RcvText)-1));
+      if Copy(RcvText, 1, 13) = '%FILES_COUNT ' then begin
+        Delete(RcvText, 1, 13);
+        ReceiveFilesCount:=StrToInt(Copy(RcvText, 1, Pos('%', RcvText) - 1));
         Socket.SendText('%FILES_COUNT_OK%');
-        ProgressBar1.Visible:=true;
+        ProgressBar.Visible:=true;
       end;
 
-    end else Socket.SendText('%LAST_REQUEST%'); //Запрашиваем последний повторно, в случае неудачи
+    end else
+      Socket.SendText('%LAST_REQUEST%'); //Запрашиваем последний повторно, в случае неудачи
 
   end;
 
 end;
 
 //Добавление папок в список, рекурсивно
-function TForm1.AddDir(FolderPath: string): boolean;
+function TMain.AddDir(FolderPath: string): boolean;
 var
-  SR:TSearchRec; FolderPathNew:string;
+  SR: TSearchRec; FolderPathNew: string;
 begin
   //Отправляем название новой папки, без полного адреса
   FolderPathNew:=FolderPath;
-  Delete(FolderPathNew,1,Length(LocalPath));
-  FileList.Add('DIR '+FolderPathNew);
+  Delete(FolderPathNew, 1, Length(LocalPath));
+  FileList.Add('DIR ' + FolderPathNew);
 
-  if FolderPath[Length(FolderPath)]<>'\' then FolderPath:=FolderPath+'\';
+  if FolderPath[Length(FolderPath)] <> '\' then
+    FolderPath:=FolderPath + '\';
 
   if FindFirst(FolderPath + '*.*', faAnyFile, SR) = 0 then begin
     repeat
-      if (SR.Attr<>faDirectory) then AddFile(FolderPath+SR.Name); //Ищем файлы
+      if (SR.Attr <> faDirectory) then
+        AddFile(FolderPath + SR.Name); //Ищем файлы
 
-      if (SR.Attr=faDirectory) and (SR.Name<>'.') and (SR.Name<>'..') then AddDir(FolderPath+SR.Name); //Ищем папки
+      if (SR.Attr = faDirectory) and (SR.Name <> '.') and (SR.Name <> '..') then
+        AddDir(FolderPath + SR.Name); //Ищем папки
 
-    until FindNext(SR)<>0;
+    until FindNext(SR) <> 0;
     FindClose(SR);
   end;
 
@@ -404,61 +453,63 @@ begin
 end;
 
 //Добавление файлов в список
-function TForm1.AddFile(FilePath: string): boolean;
+function TMain.AddFile(FilePath: string): boolean;
 begin
-  Delete(FilePath,1,Length(LocalPath));
-  FileList.Add('FILE '+FilePath);
+  Delete(FilePath, 1, Length(LocalPath));
+  FileList.Add('FILE '+ FilePath);
   Result:=true;
 end;
 
 //Отправка файлов и папок поочередно
-function TForm1.Send: boolean;
+function TMain.Send: boolean;
 begin
   //В случае отмены или неудачи выходим
   if BreakAll then begin
-    StatusBar1.SimpleText:=' Передача файлов прервана';
+    StatusBar.SimpleText:=' Передача файлов прервана';
     Exit;
   end;
 
   //Список файлов и папок на отправку
-  if FileList.Count>0 then begin
-    if copy(FileList.Strings[0],1,5)='FILE ' then begin
-      ProgressBar1.Position:=0;
-      LastFile:=LocalPath+copy(FileList.Strings[0],6,Length(FileList.Strings[0]));
-      LastRequest:='%FILE '+copy(FileList.Strings[0],6,Length(FileList.Strings[0]))+'@'+IntToStr(xGetFileSize(LocalPath+copy(FileList.Strings[0],6,Length(FileList.Strings[0]))))+'%';
-      ClientSocket1.Socket.SendText(LastRequest);
+  if FileList.Count > 0 then begin
+    if Copy(FileList.Strings[0], 1, 5) = 'FILE ' then begin
+      ProgressBar.Position:=0;
+      LastFile:=LocalPath + Copy(FileList.Strings[0], 6, Length(FileList.Strings[0]));
+      LastRequest:='%FILE ' + Copy(FileList.Strings[0], 6, Length(FileList.Strings[0])) + '@' + IntToStr(GetFileSize(LocalPath + Copy(FileList.Strings[0], 6, Length(FileList.Strings[0])))) + '%';
+      ClientSocket.Socket.SendText(LastRequest);
     end;
-    if copy(FileList.Strings[0],1,4)='DIR ' then begin
-      ProgressBar1.Position:=0;
-      LastRequest:='%DIR '+copy(FileList.Strings[0],5,Length(FileList.Strings[0]))+'%';
-      ClientSocket1.Socket.SendText(LastRequest);
+    if Copy(FileList.Strings[0], 1, 4) = 'DIR ' then begin
+      ProgressBar.Position:=0;
+      LastRequest:='%DIR ' + Copy(FileList.Strings[0], 5, Length(FileList.Strings[0])) + '%';
+      ClientSocket.Socket.SendText(LastRequest);
     end;
     FileList.Delete(0); //Удаление после отправки
   end;
   
   //Все файлы переданы
-  if FileList.Count=0 then begin
-    ProgressBar1.Visible:=false;
-    StatusBar1.SimpleText:=' Все файлы переданы';
+  if FileList.Count = 0 then begin
+    ProgressBar.Visible:=false;
+    StatusBar.SimpleText:=' Все файлы переданы';
     FileList.Clear;
   end;
 end;
 
-procedure TForm1.FormKeyDown(Sender: TObject; var Key: Word;
+procedure TMain.FormKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
 begin
   //Разрешение на отмену
-  if Key=VK_ESCAPE then BreakAll:=true;
+  if Key = VK_ESCAPE then
+    BreakAll:=true;
 end;
 
-procedure TForm1.ServerSocket1ClientError(Sender: TObject;
+procedure TMain.ServerSocketClientError(Sender: TObject;
   Socket: TCustomWinSocket; ErrorEvent: TErrorEvent;
   var ErrorCode: Integer);
 begin
   BreakAll:=true;
   case ErrorCode of
-    10061: StatusBar1.SimpleText:=' Не удалось подключиться';
-  else StatusBar1.SimpleText:=' Подключение потеряно';
+    10061: StatusBar.SimpleText:=' Не удалось подключиться';
+  else
+    StatusBar.SimpleText:=' Подключение потеряно';
   end;
   RcvFlsRep:=3;
   ErrorCode:=0;
