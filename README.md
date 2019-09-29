@@ -4,7 +4,7 @@
 Application for sharing files in lan.
 
 ## Screenshots
-![](https://user-images.githubusercontent.com/9499881/65606867-a6fdb000-dfbc-11e9-9ee5-888c58fa565d.png)
+![](https://user-images.githubusercontent.com/9499881/65833834-a0857600-e2e5-11e9-8b3e-8972ed1dfc35.png)
 
 ## Setup
 To send files, you must run the program on two computers. On the computer the sender you want to moved your files to program interface (drag and drop), and enter the IP address and then begin sending files.<br><br>
