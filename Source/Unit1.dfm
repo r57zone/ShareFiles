@@ -3,7 +3,7 @@ object Main: TMain
   Top = 124
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
-  Caption = 'eFile current'
+  Caption = 'ShareFiles current'
   ClientHeight = 170
   ClientWidth = 300
   Color = clBtnFace

@@ -44,13 +44,14 @@ type
 
 var
   Main: TMain;
-  LastRequest, LastFile, LocalPath, CurPath, Address:string;
+  LastRequest, LastFile, LocalPath, CurPath, Address: string;
   FileList, AllwLs: TStringList;
-  SendFilesCount, SendedFilesCount: int64;
+  SendFilesCount, SendedFilesCount: integer;
   RcvFlsRep: integer;
   AlwRcvFls: boolean;
   BreakAll, Receive: boolean;
-  FSize, ReceiveFilesCount, ReceivedFilesCount: int64;
+  ReceiveFilesCount, ReceivedFilesCount: integer;
+  FSize: int64;
   FStream: TFileStream;
 
   ID_ENTER_IP, ID_CONNECT, ID_ALLOW_CONNECTION, ID_NOT_ALLOW_RECEIVE_FILES,
@@ -105,11 +106,11 @@ begin
   Ini.Free;
 
   //Проверка на повторый запуск
-  if FindWindow('TMain', 'eFile') <> 0 then begin
-    SetForegroundWindow(FindWindow('TMain', 'eFile'));
+  if FindWindow('TMain', 'ShareFiles') <> 0 then begin
+    SetForegroundWindow(FindWindow('TMain', 'ShareFiles'));
     Halt;
   end;
-  Caption:='eFile';
+  Caption:='ShareFiles';
   Application.Title:=Caption;
 
   //Адрес передачи по умолчанию
@@ -149,10 +150,10 @@ var
   FileName: PChar;
   RunOnce: boolean;
 begin
-  if Trim(Address)='' then
+  if Trim(Address) = '' then
     InputQuery(Caption, ID_ENTER_IP, Address);
 
-  if Trim(Address)='' then
+  if Trim(Address) = '' then
     BreakAll:=true;
 
   ClientSocket.Host:=Address;
@@ -163,6 +164,7 @@ begin
   BreakAll:=false;
   FileList.Clear;
   SendFilesCount:=0;
+  SendedFilesCount:=0;
   RunOnce:=false;
 
   //Ждем разрешения на передачу файлов
@@ -247,10 +249,8 @@ begin
   if Pos('%FILES_COUNT_OK%', RcvText) > 0 then
     Send;
 
-  if Pos('%FILES_ALLOW_OK%', RcvText) > 0 then begin
+  if Pos('%FILES_ALLOW_OK%', RcvText) > 0 then
     RcvFlsRep:=1;
-    SendedFilesCount:=0;
-  end;
 
   //Команда на отправку файла
   if Pos('%SEND%', RcvText) > 0 then begin
@@ -285,8 +285,8 @@ end;
 
 procedure TMain.StatusBarClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Caption + ' 0.7.2' + #13#10 +
-  ID_LAST_UPDATE + ': 25.09.2018' + #13#10 +
+  Application.MessageBox(PChar(Caption + ' 0.7.3' + #13#10 +
+  ID_LAST_UPDATE + ': 04.01.2020' + #13#10 +
   'https://r57zone.github.io' + #13#10 +
   'r57zone@gmail.com'), PChar(ID_ABOUT_TITLE), MB_ICONINFORMATION);
 end;
