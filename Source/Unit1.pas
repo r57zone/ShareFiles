@@ -54,6 +54,7 @@ var
   FSize: int64;
   FStream: TFileStream;
 
+  //Перевод
   ID_ENTER_IP, ID_CONNECT, ID_ALLOW_CONNECTION, ID_NOT_ALLOW_RECEIVE_FILES,
   ID_FAIL_CONNECT, ID_CONNECTION_LOST, ID_SEND_FILES, ID_SEND_FILES_ABORTED,
   ID_RECEIVE_FILES, ID_SUCCESS_RECEIVED_FILES, ID_SUCCESS_SENDED_FILES: string;
@@ -220,7 +221,8 @@ begin
 
   //Считаем количество файлов
   for i:=0 to FileList.Count - 1 do
-    if Copy(FileList.Strings[i], 1, 5) = 'FILE ' then Inc(SendFilesCount);
+    if Copy(FileList.Strings[i], 1, 5) = 'FILE ' then
+      Inc(SendFilesCount);
 
   //Отправляем количество файлов
   LastRequest:='%FILES_COUNT ' + IntToStr(SendFilesCount) + '%';
@@ -238,12 +240,12 @@ begin
   if Pos('%LAST_REQUEST%', RcvText) > 0 then
     Socket.SendText(LastRequest);
 
-  if Pos('%SUCESS_FILE%', RcvText) > 0 then begin
+  if Pos('%SUCCESS_FILE%', RcvText) > 0 then begin
     Send;
     Inc(SendedFilesCount);
   end;
 
-  if Pos('%SUCESS_DIR%', RcvText) > 0 then
+  if Pos('%SUCCESS_DIR%', RcvText) > 0 then
     Send;
 
   if Pos('%FILES_COUNT_OK%', RcvText) > 0 then
@@ -260,12 +262,10 @@ begin
     ClientSocket.Socket.SendStream(TFileStream.Create(LastFile, fmOpenRead or fmShareDenyWrite));
   end;
 
-  if (RcvText[1] = '%') and (RcvText[Length(RcvText)] = '%') then begin
-    if Copy(RcvText, 1, 14) = '%PROGRESS_BAR ' then begin
-      Delete(RcvText, 1, 14);
-      RcvText:=Copy(RcvText, 1, Pos('%', RcvText) - 1);
-      ProgressBar.Position:=StrToIntDef(RcvText, 0);
-    end;
+  if (RcvText[1] = '%') and (RcvText[Length(RcvText)] = '%') and (Copy(RcvText, 1, 14) = '%PROGRESS_BAR ') then begin
+    Delete(RcvText, 1, 14);
+    RcvText:=Copy(RcvText, 1, Pos('%', RcvText) - 1);
+    ProgressBar.Position:=StrToIntDef(RcvText, 0);
   end;
 end;
 
@@ -285,8 +285,8 @@ end;
 
 procedure TMain.StatusBarClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Caption + ' 0.7.3' + #13#10 +
-  ID_LAST_UPDATE + ': 04.01.2020' + #13#10 +
+  Application.MessageBox(PChar(Caption + ' 0.7.4' + #13#10 +
+  ID_LAST_UPDATE + ': 20.06.2020' + #13#10 +
   'https://r57zone.github.io' + #13#10 +
   'r57zone@gmail.com'), PChar(ID_ABOUT_TITLE), MB_ICONINFORMATION);
 end;
@@ -366,7 +366,7 @@ begin
       if FStream.Size = FSize then begin //Завершаем если размер соответствует размеру оригигала
         Receive:=false;
         FStream.Free;
-        Socket.SendText('%SUCESS_FILE%');
+        Socket.SendText('%SUCCESS_FILE%');
         Inc(ReceivedFilesCount);
         if (ReceiveFilesCount = ReceivedFilesCount) then begin
           StatusBar.SimpleText:=' ' + ID_SUCCESS_RECEIVED_FILES;
@@ -391,7 +391,7 @@ begin
         FName:=Copy(RcvText, 1, Pos('%', RcvText) - 1);
         if not (DirectoryExists(CurPath + '\' + FName)) then
           CreateDir(CurPath + '\' + FName);
-        Socket.SendText('%SUCESS_DIR%');
+        Socket.SendText('%SUCCESS_DIR%');
       end;
 
       //Создание файла
@@ -407,7 +407,7 @@ begin
           else begin //Пустые файлы
             Receive:=false;
             FStream.Free;
-            Socket.SendText('%SUCESS_FILE%');
+            Socket.SendText('%SUCCESS_FILE%');
             Inc(ReceivedFilesCount);
             if (ReceiveFilesCount = ReceivedFilesCount) then begin
               StatusBar.SimpleText:=' ' + ID_SUCCESS_RECEIVED_FILES;
@@ -465,7 +465,7 @@ end;
 procedure TMain.AddFile(FilePath: string);
 begin
   Delete(FilePath, 1, Length(LocalPath));
-  FileList.Add('FILE '+ FilePath);
+  FileList.Add('FILE ' + FilePath);
 end;
 
 //Отправка файлов и папок поочередно
