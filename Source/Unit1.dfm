@@ -1,6 +1,6 @@
 object Main: TMain
-  Left = 192
-  Top = 124
+  Left = 186
+  Top = 126
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'ShareFiles current'
@@ -12,11 +12,12 @@ object Main: TMain
   Font.Height = -11
   Font.Name = 'MS Sans Serif'
   Font.Style = []
+  Menu = MainMenu
   OldCreateOrder = False
   Position = poScreenCenter
   OnClose = FormClose
+  OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
-  OnKeyDown = FormKeyDown
   PixelsPerInch = 96
   TextHeight = 13
   object DragAndDropImage: TImage
@@ -115,16 +116,16 @@ object Main: TMain
     Height = 19
     Panels = <>
     SimplePanel = True
-    OnClick = StatusBarClick
   end
   object ClientSocket: TClientSocket
     Active = False
     ClientType = ctNonBlocking
     Port = 0
+    OnConnect = ClientSocketConnect
     OnDisconnect = ClientSocketDisconnect
     OnRead = ClientSocketRead
     OnError = ClientSocketError
-    Left = 40
+    Left = 232
     Top = 8
   end
   object ServerSocket: TServerSocket
@@ -132,13 +133,54 @@ object Main: TMain
     Port = 0
     ServerType = stNonBlocking
     OnClientConnect = ServerSocketClientConnect
+    OnClientDisconnect = ServerSocketClientDisconnect
     OnClientRead = ServerSocketClientRead
     OnClientError = ServerSocketClientError
-    Left = 72
+    Left = 264
     Top = 8
   end
   object XPManifest: TXPManifest
-    Left = 8
+    Left = 168
     Top = 8
+  end
+  object MainMenu: TMainMenu
+    Left = 200
+    Top = 8
+    object FileBtn: TMenuItem
+      Caption = #1060#1072#1081#1083
+      object SettingsBtn: TMenuItem
+        Caption = #1053#1072#1089#1090#1088#1086#1081#1082#1080
+        OnClick = SettingsBtnClick
+      end
+      object Line: TMenuItem
+        Caption = '-'
+      end
+      object ExitBtn: TMenuItem
+        Caption = #1042#1099#1093#1086#1076
+        OnClick = ExitBtnClick
+      end
+    end
+    object ConsBtn: TMenuItem
+      Caption = #1055#1086#1076#1082#1083#1102#1095#1077#1085#1080#1103
+      object ConSelBtn: TMenuItem
+        Caption = #1042#1099#1073#1088#1072#1090#1100
+        OnClick = ConSelBtnClick
+      end
+      object Line2: TMenuItem
+        Caption = '-'
+      end
+      object AbortBtn: TMenuItem
+        Caption = #1055#1088#1077#1088#1074#1072#1090#1100
+        Enabled = False
+        OnClick = N5Click
+      end
+    end
+    object HelpBtn: TMenuItem
+      Caption = #1057#1087#1088#1072#1074#1082#1072
+      object AboutBtn: TMenuItem
+        Caption = #1054' '#1087#1088#1086#1075#1088#1072#1084#1084#1077'...'
+        OnClick = AboutBtnClick
+      end
+    end
   end
 end

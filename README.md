@@ -6,15 +6,14 @@
 Application for sharing files in lan.
 
 ## Screenshots
-![](https://user-images.githubusercontent.com/9499881/71770279-521aef80-2f44-11ea-84a7-fef649cb3207.PNG)
+![](https://github.com/r57zone/ShareFiles/assets/9499881/a8764b13-3477-4674-b849-0177993a9b65)
 
 ## Setup
-To send files, you must run the program on two computers. On the computer the sender you want to moved your files to program interface (drag and drop), and enter the IP address and then begin sending files.<br><br>
-In order not to enter the IP address, you can run the program with the parameter.<br>
-**Example:**
->"C:\Program Files\ShareFiles\ShareFiles.exe" 192.168.0.2
+To send files it is necessary to run the program on two computers. On the sender's computer it is necessary to send the required files or folder to the program interface and select the computer with the added IP address, after which the sending of files will start.<br><br>
+In order not to select an IP address, you can run the program with a parameter:<br>
+>"C:\Program Files\ShareFiles\ShareFiles.exe" -d 192.168.0.2
 
-In order to file an program at the reception did not ask confirmation, you must add the IP address of the sending party to file "Allow.txt".
+In order for the program not to ask for confirmation when receiving files, it is necessary to add IP address in the program settings.
 
 ## Download
 >Version for Windows XP, 7, 8.1, 10.

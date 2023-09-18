@@ -4,7 +4,8 @@ interface
 
 uses
   Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
-  Dialogs, ScktComp, StdCtrls, XPMan, ComCtrls, ShellAPI, ExtCtrls, IniFiles;
+  Dialogs, ScktComp, StdCtrls, XPMan, ComCtrls, ShellAPI, ExtCtrls, IniFiles, IdHashCRC,
+  Menus;
 
 type
   TMain = class(TForm)
@@ -14,29 +15,49 @@ type
     ProgressBar: TProgressBar;
     StatusBar: TStatusBar;
     DragAndDropImage: TImage;
+    MainMenu: TMainMenu;
+    ConsBtn: TMenuItem;
+    ExitBtn: TMenuItem;
+    HelpBtn: TMenuItem;
+    AboutBtn: TMenuItem;
+    ConSelBtn: TMenuItem;
+    Line: TMenuItem;
+    FileBtn: TMenuItem;
+    SettingsBtn: TMenuItem;
+    Line2: TMenuItem;
+    AbortBtn: TMenuItem;
     procedure FormCreate(Sender: TObject);
     procedure FormClose(Sender: TObject; var Action: TCloseAction);
     procedure ClientSocketRead(Sender: TObject; Socket: TCustomWinSocket);
     procedure ClientSocketError(Sender: TObject; Socket: TCustomWinSocket;
       ErrorEvent: TErrorEvent; var ErrorCode: Integer);
-    procedure StatusBarClick(Sender: TObject);
     procedure ClientSocketDisconnect(Sender: TObject;
       Socket: TCustomWinSocket);
     procedure ServerSocketClientConnect(Sender: TObject;
       Socket: TCustomWinSocket);
     procedure ServerSocketClientRead(Sender: TObject;
       Socket: TCustomWinSocket);
-    procedure FormKeyDown(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
     procedure ServerSocketClientError(Sender: TObject;
       Socket: TCustomWinSocket; ErrorEvent: TErrorEvent;
       var ErrorCode: Integer);
+    procedure AboutBtnClick(Sender: TObject);
+    procedure ExitBtnClick(Sender: TObject);
+    procedure ServerSocketClientDisconnect(Sender: TObject;
+      Socket: TCustomWinSocket);
+    procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+    procedure ClientSocketConnect(Sender: TObject;
+      Socket: TCustomWinSocket);
+    procedure ConSelBtnClick(Sender: TObject);
+    procedure SettingsBtnClick(Sender: TObject);
+    procedure N5Click(Sender: TObject);
   protected
     procedure WMDropFiles (var Msg: TMessage); message wm_DropFiles;
   private
     procedure AddDir(FolderPath: string);
     procedure AddFile(FilePath: string);
     procedure Send;
+    procedure ReceivedReset;
+    procedure SentReset;
     { Private declarations }
   public
     { Public declarations }
@@ -44,23 +65,41 @@ type
 
 var
   Main: TMain;
-  LastRequest, LastFile, LocalPath, CurPath, Address: string;
-  FileList, AllwLs: TStringList;
-  SendFilesCount, SendedFilesCount: integer;
-  RcvFlsRep: integer;
-  AlwRcvFls: boolean;
-  BreakAll, Receive: boolean;
+  LastRequest, LastSendFile, LastReceivingFile, LocalPath, CurPath, CurAddress: string;
+  AddressBook: string;
+  FileList, AllowIPs: TStringList;
+  SendFilesCount, SentFilesCount: integer;
+  ReceivingFilesPermission: integer;
+  AllowReceivingFiles: boolean;
+  ReceivingFiles: boolean;
   ReceiveFilesCount, ReceivedFilesCount: integer;
-  FSize: int64;
-  FStream: TFileStream;
 
-  //Перевод
-  ID_ENTER_IP, ID_CONNECT, ID_ALLOW_CONNECTION, ID_NOT_ALLOW_RECEIVE_FILES,
+  StopRequest: boolean;
+  ReceivedFileStream: TFileStream; // Обработка ClientRead срабатывает несколько раз
+  ReceivedFileOrFolderName: string;
+  ReceivedFileDate: integer;
+  //ReceivedCRC32File: Cardinal;
+  ReceivedFileSize: int64;
+
+  // Перевод
+  ID_ENTER_IP, ID_ENTER_NAME, ID_CONNECT, ID_ALLOW_CONNECTION, ID_NOT_ALLOW_RECEIVE_FILES,
   ID_FAIL_CONNECT, ID_CONNECTION_LOST, ID_SEND_FILES, ID_SEND_FILES_ABORTED,
-  ID_RECEIVE_FILES, ID_SUCCESS_RECEIVED_FILES, ID_SUCCESS_SENDED_FILES: string;
+  ID_RECEIVE_FILES, ID_RECEIVE_FILES_ABORTED, ID_SUCCESS_RECEIVED_FILES,
+  ID_SUCCESS_SENT_FILES: string;
+
+  ID_NAME, ID_IP_ADDRESS, ID_ADD, ID_EDIT, ID_REMOVE, ID_SELECT, ID_CANCEL,
+  ID_SELECT_FOLDER, ID_FOLDER_RECEIVING_FILES, ID_PORT, ID_IPS_WITOUT_ASKING, ID_OK: string;
+
   ID_ABOUT_TITLE, ID_LAST_UPDATE: string;
 
+const
+  PermissionAllow = 1;
+  PermissionDenied = 2;
+  PermissionMissing = 3;
+
 implementation
+
+uses Unit2, Unit3;
 
 {$R *.dfm}
 
@@ -84,14 +123,24 @@ end;
 
 procedure TMain.FormCreate(Sender: TObject);
 var
-  Ini: TIniFile;
+  Ini: TIniFile; i: integer; DebugMode: integer;
 begin
-  //Перевод
+  // Перевод
   if FileExists(ExtractFilePath(ParamStr(0)) + 'Languages\' + GetLocaleInformation(LOCALE_SENGLANGUAGE) + '.ini') then
     Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Languages\' + GetLocaleInformation(LOCALE_SENGLANGUAGE) + '.ini')
   else
     Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Languages\English.ini');
-  ID_ENTER_IP:=Ini.ReadString('Main', 'ID_ENTER_IP', '');
+
+  FileBtn.Caption:=Ini.ReadString('Main', 'ID_FILE', '');
+  SettingsBtn.Caption:=Ini.ReadString('Main', 'ID_SETTINGS', '');
+  ExitBtn.Caption:=Ini.ReadString('Main', 'ID_EXIT', '');
+  ConsBtn.Caption:=Ini.ReadString('Main', 'ID_CONNECTIONS', '');
+  ConSelBtn.Caption:=Ini.ReadString('Main', 'ID_SELECT', '');
+  AbortBtn.Caption:=Ini.ReadString('Main', 'ID_ABORT', '');
+  HelpBtn.Caption:=Ini.ReadString('Main', 'ID_HELP', '');
+  ID_ABOUT_TITLE:=Ini.ReadString('Main', 'ID_ABOUT_TITLE', '');
+  AboutBtn.Caption:=ID_ABOUT_TITLE;
+
   ID_CONNECT:=Ini.ReadString('Main', 'ID_CONNECT', '');
   ID_ALLOW_CONNECTION:=Ini.ReadString('Main', 'ID_ALLOW_CONNECTION', '');
   ID_NOT_ALLOW_RECEIVE_FILES:=Ini.ReadString('Main', 'ID_NOT_ALLOW_RECEIVE_FILES', '');
@@ -100,49 +149,89 @@ begin
   ID_SEND_FILES:=Ini.ReadString('Main', 'ID_SEND_FILES', '');
   ID_SEND_FILES_ABORTED:=Ini.ReadString('Main', 'ID_SEND_FILES_ABORTED', '');
   ID_RECEIVE_FILES:=Ini.ReadString('Main', 'ID_RECEIVE_FILES', '');
+  ID_RECEIVE_FILES_ABORTED:=Ini.ReadString('Main', 'ID_RECEIVE_FILES_ABORTED', '');
   ID_SUCCESS_RECEIVED_FILES:=Ini.ReadString('Main', 'ID_SUCCESS_RECEIVED_FILES', '');
-  ID_SUCCESS_SENDED_FILES:=Ini.ReadString('Main', 'ID_SUCCESS_SENDED_FILES', '');
-  ID_ABOUT_TITLE:=Ini.ReadString('Main', 'ID_ABOUT_TITLE', '');
+  ID_SUCCESS_SENT_FILES:=Ini.ReadString('Main', 'ID_SUCCESS_SENT_FILES', '');
+
+  ID_NAME:=Ini.ReadString('Main', 'ID_NAME', '');
+  ID_IP_ADDRESS:=Ini.ReadString('Main', 'ID_IP_ADDRESS', '');
+  ID_ENTER_NAME:=Ini.ReadString('Main', 'ID_ENTER_NAME', '');
+  ID_ENTER_IP:=Ini.ReadString('Main', 'ID_ENTER_IP', '');
+  ID_ADD:=Ini.ReadString('Main', 'ID_ADD', '');
+  ID_EDIT:=Ini.ReadString('Main', 'ID_EDIT', '');
+  ID_REMOVE:=Ini.ReadString('Main', 'ID_REMOVE', '');
+  ID_SELECT:=Ini.ReadString('Main', 'ID_SELECT', '');
+  ID_CANCEL:=Ini.ReadString('Main', 'ID_CANCEL', '');
+
+  ID_SELECT_FOLDER:=Ini.ReadString('Main', 'ID_SELECT_FOLDER', '');
+  ID_FOLDER_RECEIVING_FILES:=Ini.ReadString('Main', 'ID_FOLDER_RECEIVING_FILES', '');
+  ID_PORT:=Ini.ReadString('Main', 'ID_PORT', '');
+  ID_IPS_WITOUT_ASKING:=Ini.ReadString('Main', 'ID_IPS_WITOUT_ASKING', '');
+  ID_OK:=Ini.ReadString('Main', 'ID_OK', '');
+
   ID_LAST_UPDATE:=Ini.ReadString('Main', 'ID_LAST_UPDATE', '');
   Ini.Free;
 
-  //Проверка на повторый запуск
-  if FindWindow('TMain', 'ShareFiles') <> 0 then begin
+  DebugMode:=-1;
+  for i:=1 to ParamCount do begin
+    if ParamStr(i) = '-debug' then
+      DebugMode:=StrToIntDef(ParamStr(i + 1), 0);
+
+    // Адрес передачи по умолчанию
+    if ParamStr(i) = '-d' then
+      CurAddress:=ParamStr(i + 1);
+  end;
+
+  // Проверка на повторый запуск
+  if (DebugMode = -1) and (FindWindow('TMain', 'ShareFiles') <> 0) then begin
     SetForegroundWindow(FindWindow('TMain', 'ShareFiles'));
     Halt;
   end;
+  
   Caption:='ShareFiles';
+  if DebugMode <> -1 then
+    if DebugMode = 0 then
+      Caption:=Caption + ' - Server'
+    else
+      Caption:=Caption + ' - Client';
   Application.Title:=Caption;
-
-  //Адрес передачи по умолчанию
-  Address:=ParamStr(1);
 
   Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Setup.ini');
   ClientSocket.Port:=Ini.ReadInteger('Main', 'Port', 5371);
   ServerSocket.Port:=Ini.ReadInteger('Main', 'Port', 5371);
+  AddressBook:=Ini.ReadString('Main', 'AddressBook', '');
+  AllowIPs:=TStringList.Create;
+  AllowIPs.Text:=StringReplace(Ini.ReadString('Main', 'IPsWithoutRequest', ''), ';', #13#10, [rfReplaceAll]);
   CurPath:=Ini.ReadString('Main', 'Path', '');
-  if Trim(CurPath) = '' then
-    CurPath:=GetEnvironmentVariable('USERPROFILE') + '\Desktop\';
+  if Trim(CurPath) = '' then CurPath:=GetEnvironmentVariable('USERPROFILE') + '\Desktop\';
   Ini.Free;
 
-  if FileExists(ExtractFilePath(ParamStr(0)) + 'Allow.txt') then begin
-    AllwLs:=TStringList.Create;
-    AllwLs.LoadFromFile(ExtractFilePath(ParamStr(0)) + 'Allow.txt');
+  FileList:=TStringList.Create;
+
+  if DebugMode <> 1 then
+    ServerSocket.Active:=true;
+
+  if DebugMode <> -1 then begin
+    FormStyle:=FSStayOnTop;
+    Position:=poDesigned;
+    Top:=Screen.Height div 2 - Height div 2;
+    if DebugMode = 0 then
+      Left:=Screen.Width div 2
+    else
+      Left:=Screen.Width div 2 - Width;;
   end;
 
-  DragAcceptFiles(Main.Handle,true);
-  FileList:=TStringList.Create;
-  ServerSocket.Active:=true;
+  DragAcceptFiles(Main.Handle, true);
 end;
 
 procedure TMain.FormClose(Sender: TObject; var Action: TCloseAction);
 begin
-  if Assigned(AllwLs) then AllwLs.Free;
-  FileList.Free;
   if ClientSocket.Active then
     ClientSocket.Active:=false;
   if ServerSocket.Active then
     ServerSocket.Active:=false;
+  AllowIPs.Free;
+  FileList.Free;
 end;
 
 procedure TMain.WMDropFiles(var Msg: TMessage);
@@ -151,44 +240,53 @@ var
   FileName: PChar;
   RunOnce: boolean;
 begin
-  if Trim(Address) = '' then
-    InputQuery(Caption, ID_ENTER_IP, Address);
+  // Если передача идёт
+  if ReceivingFiles = false then begin
+  
+    if Trim(CurAddress) = '' then
+      ConnectionsForm.ShowModal;
 
-  if Trim(Address) = '' then
-    BreakAll:=true;
+    if Trim(CurAddress) = '' then
+      Exit;
 
-  ClientSocket.Host:=Address;
-  StatusBar.SimpleText:=' ' + ID_CONNECT;
-  if ClientSocket.Active = false then
-    ClientSocket.Active:=true;
+    StatusBar.SimpleText:=' ' + ID_CONNECT;
+    ClientSocket.Host:=CurAddress;
 
-  BreakAll:=false;
-  FileList.Clear;
-  SendFilesCount:=0;
-  SendedFilesCount:=0;
-  RunOnce:=false;
-
-  //Ждем разрешения на передачу файлов
-  while RcvFlsRep <> 1 do begin
-    if (RcvFlsRep = 2) or (RcvFlsRep = 3) then begin
-      BreakAll:=true;
-      Break;
+    if not ClientSocket.Active then begin
+      ClientSocket.Close;
+      ClientSocket.Open;
     end;
-    Application.ProcessMessages;
+
+    StopRequest:=false;
+    FileList.Clear;
+    SendFilesCount:=0;
+    SentFilesCount:=0;
+    RunOnce:=false;
+
+    // Ждем разрешения на передачу файлов
+    while ReceivingFilesPermission <> PermissionAllow do begin
+      if (ReceivingFilesPermission = PermissionDenied) or (ReceivingFilesPermission = PermissionMissing) then begin
+        StopRequest:=true;
+        Break;
+      end;
+      Sleep(1);
+      Application.ProcessMessages;
+    end;
+
+    case ReceivingFilesPermission of
+      PermissionDenied: StatusBar.SimpleText:=' ' + ID_NOT_ALLOW_RECEIVE_FILES;
+      PermissionMissing: StatusBar.SimpleText:=' ' + ID_FAIL_CONNECT;
+    end;
+
+    // В случае отмены или неудачи выходим
+    if StopRequest then
+      Exit;
+
+    ProgressBar.Visible:=true;
+    AbortBtn.Enabled:=true;
   end;
 
-  case RcvFlsRep of
-    2: StatusBar.SimpleText:=' ' + ID_NOT_ALLOW_RECEIVE_FILES;
-    3: StatusBar.SimpleText:=' ' + ID_FAIL_CONNECT;
-  end;
-
-  //В случае отмены или неудачи выходим
-  if BreakAll then
-    Exit;
-
-  ProgressBar.Visible:=true;
-
-  //Обработка Drag & Drop
+  // Обработка Drag & Drop
   inherited;
   Amount:=DragQueryFile(Msg.WParam, $FFFFFFFF, FileName, 255);
   for i:=0 to Amount - 1 do begin
@@ -196,11 +294,7 @@ begin
     FileName:=StrAlloc(Size);
     DragQueryFile(Msg.WParam, i, FileName, Size);
 
-    //В случае отмены или неудачи выходим
-    if BreakAll then
-      Exit;
-
-    //Узнаем папку передаваемых файлов
+    // Узнаем папку передаваемых файлов
     if RunOnce = false then begin
       LocalPath:=ExtractFilePath(StrPas(FileName));
       RunOnce:=true;
@@ -219,31 +313,47 @@ begin
 
   DragFinish(Msg.WParam);
 
-  //Считаем количество файлов
+  // Считаем количество файлов
   for i:=0 to FileList.Count - 1 do
     if Copy(FileList.Strings[i], 1, 5) = 'FILE ' then
       Inc(SendFilesCount);
 
-  //Отправляем количество файлов
-  LastRequest:='%FILES_COUNT ' + IntToStr(SendFilesCount) + '%';
-  ClientSocket.Socket.SendText(LastRequest);
+  // Нельзя передавать во время передачи файла
+  if (ReceivingFiles = false) and (ClientSocket.Active) then begin // ToDo отправлять новое количество, а пока пропуск
+    // Отправляем количество файлов
+    LastRequest:='%FILES_COUNT ' + IntToStr(SendFilesCount) + '%';
+    ClientSocket.Socket.SendText(LastRequest);
+  end;
 end;
 
 procedure TMain.ClientSocketRead(Sender: TObject;
   Socket: TCustomWinSocket);
 var
-  RcvText: string;
+  RcvText: string; FileStream: TFileStream;
 begin
+  Application.ProcessMessages;
+
+  if StopRequest then begin
+    Socket.Close;
+    ClientSocket.Active:=false;
+    StatusBar.SimpleText:=' ' + ID_CONNECTION_LOST;
+    AbortBtn.Enabled:=false;
+    Exit;
+  end;
+
   RcvText:=Socket.ReceiveText;
 
-  //Последний запрос, в случае неудачной отправки или приема можно запросить повторно
+  // Последний запрос, в случае неудачной отправки или приема можно запросить повторно
   if Pos('%LAST_REQUEST%', RcvText) > 0 then
     Socket.SendText(LastRequest);
 
   if Pos('%SUCCESS_FILE%', RcvText) > 0 then begin
     Send;
-    Inc(SendedFilesCount);
+    Inc(SentFilesCount);
   end;
+
+  if Pos('%FILE_CORRUPTED%', RcvText) > 0 then // Пробуем снова
+    Send;
 
   if Pos('%SUCCESS_DIR%', RcvText) > 0 then
     Send;
@@ -252,14 +362,28 @@ begin
     Send;
 
   if Pos('%FILES_ALLOW_OK%', RcvText) > 0 then
-    RcvFlsRep:=1;
+    ReceivingFilesPermission:=PermissionAllow;
 
-  //Команда на отправку файла
+  // Команда на отправку файла
   if Pos('%SEND%', RcvText) > 0 then begin
     ProgressBar.Position:=0;
     ProgressBar.Visible:=true;
-    StatusBar.SimpleText:=Format(' ' + ID_SEND_FILES, [SendedFilesCount, SendFilesCount]);
-    ClientSocket.Socket.SendStream(TFileStream.Create(LastFile, fmOpenRead or fmShareDenyWrite));
+    StatusBar.SimpleText:=Format(' ' + ID_SEND_FILES, [SentFilesCount, SendFilesCount]);
+
+    try
+      ClientSocket.Socket.SendStream(TFileStream.Create(LastSendFile, fmOpenRead or fmShareDenyWrite));
+    except
+      StatusBar.SimpleText:=' ' + ID_FAIL_CONNECT;
+    end;
+    // ToDo: Нужно очищать потом V
+
+    {try
+      FileStream :=TFileStream.Create(LastSendFile, fmOpenRead or fmShareDenyWrite);
+      ClientSocket.Socket.SendStream(FileStream);
+    finally
+      FileStream.Free;
+    end;}
+
   end;
 
   if (RcvText[1] = '%') and (RcvText[Length(RcvText)] = '%') and (Copy(RcvText, 1, 14) = '%PROGRESS_BAR ') then begin
@@ -273,59 +397,62 @@ procedure TMain.ClientSocketError(Sender: TObject;
   Socket: TCustomWinSocket; ErrorEvent: TErrorEvent;
   var ErrorCode: Integer);
 begin
-  BreakAll:=true;
-  case ErrorCode of
-    10061: StatusBar.SimpleText:=' ' + ID_FAIL_CONNECT;
-  else
+  try
+    StopRequest:=true;
+    case ErrorCode of
+      10061: StatusBar.SimpleText:=' ' + ID_FAIL_CONNECT;
+    else
+      StatusBar.SimpleText:=' ' + ID_CONNECTION_LOST;
+    end;
+    ErrorCode:=0;
+    SentReset;
+    if ClientSocket.Active then
+      ClientSocket.Close;
+  except
     StatusBar.SimpleText:=' ' + ID_CONNECTION_LOST;
   end;
-  RcvFlsRep:=3;
-  ErrorCode:=0;
-end;
-
-procedure TMain.StatusBarClick(Sender: TObject);
-begin
-  Application.MessageBox(PChar(Caption + ' 0.7.4' + #13#10 +
-  ID_LAST_UPDATE + ': 20.06.2020' + #13#10 +
-  'https://r57zone.github.io' + #13#10 +
-  'r57zone@gmail.com'), PChar(ID_ABOUT_TITLE), MB_ICONINFORMATION);
 end;
 
 procedure TMain.ClientSocketDisconnect(Sender: TObject;
   Socket: TCustomWinSocket);
 begin
-  RcvFlsRep:=3;
+  StopRequest:=true;
+  SentReset;
+  if ClientSocket.Active then
+    ClientSocket.Close;
 end;
 
 procedure TMain.ServerSocketClientConnect(Sender: TObject;
   Socket: TCustomWinSocket);
 begin
-  //Разрешаем только одно подключение
+  // Разрешаем только одно подключение
   if ServerSocket.Socket.ActiveConnections = 1 then begin
-    AlwRcvFls:=false;
-    FStream:=nil;
-    BreakAll:=false;
-    Receive:=false;
+
+    // Инициализация приема файлов
+    AllowReceivingFiles:=false;
+    ReceivedFileStream:=nil; // В случае прошлой ошибки с приёмом
+    StopRequest:=false;
+    ReceivingFiles:=false;
     ReceivedFilesCount:=0;
 
-  //Проверяем есть ли в списке "Allow.txt" адрес, чтобы не запрашивать подверждение
-  if (Assigned(AllwLs)) and (Pos(Socket.RemoteAddress, AllwLs.Text) > 0) then begin
-    AlwRcvFls:=true;
-    ServerSocket.Socket.Connections[0].SendText('%FILES_ALLOW_OK%');
+    // Проверяем есть ли в списке "Allow.txt" адрес, чтобы не запрашивать подверждение
+    if (AllowIPs.Count > 0) and (Pos(Socket.RemoteAddress, AllowIPs.Text) > 0) then begin
+      AllowReceivingFiles:=true;
+      ServerSocket.Socket.Connections[0].SendText('%FILES_ALLOW_OK%');
+    end else
+      case MessageBox(Handle, PChar(ID_ALLOW_CONNECTION + ' ' + Socket.RemoteHost + ' ' + Socket.RemoteAddress), PChar(Caption), 35 or MB_TOPMOST) of
+        6: begin
+            AllowReceivingFiles:=true;
+            ServerSocket.Socket.Connections[0].SendText('%FILES_ALLOW_OK%');
+          end;
+        7: ServerSocket.Socket.Connections[0].Close;
+        2: ServerSocket.Socket.Connections[0].Close;
+      end;
   end else
-    case MessageBox(Handle, PChar(ID_ALLOW_CONNECTION + ' ' + Socket.RemoteHost + ' ' + Socket.RemoteAddress), PChar(Caption), 35) of
-      6: begin
-          AlwRcvFls:=true;
-          ServerSocket.Socket.Connections[0].SendText('%FILES_ALLOW_OK%');
-        end;
-      7: Socket.Close;
-      2: Socket.Close;
-    end;
-  end else
-    Socket.Close;
+    ServerSocket.Socket.Connections[0].Close;
 end;
 
-//Количество символов в строке
+// Количество символов в строке
 function CountCharStr(Symb: Char; Str: string): integer;
 var
   i: integer;
@@ -341,38 +468,52 @@ procedure TMain.ServerSocketClientRead(Sender: TObject;
 var
   LengthFile: integer;
   BufferFile: Pointer;
-  FName, RcvText: string;
+  RcvText: string;
 begin
-  //В случае отмены или неудачи выходим
-  if BreakAll then begin
-    Receive:=false;
-    FStream.Free;
-    ProgressBar.Visible:=false;
-    StatusBar.SimpleText:=' ' + ID_SEND_FILES_ABORTED;
+  // В случае отмены или неудачи выходим
+  if StopRequest then begin
+
+    ReceivingFiles:=false;
+    ReceivedFileStream.Free;
+    if LastReceivingFile <> '' then // Удаляем последний файл, если он нецел
+      DeleteFile(CurPath + '\' + LastReceivingFile);
+    StatusBar.SimpleText:=' ' + ID_RECEIVE_FILES_ABORTED;
+    ReceivedReset;
+    ServerSocket.Socket.Connections[0].Close;;
     Exit;
   end;
 
-  //Получение файла
-  if Receive then begin
+  // Получение файла
+  if ReceivingFiles then begin
     StatusBar.SimpleText:=Format(' ' + ID_RECEIVE_FILES, [ReceivedFilesCount, ReceiveFilesCount]);
     LengthFile:=Socket.ReceiveLength;
     GetMem(BufferFile, LengthFile);
     try
       Socket.ReceiveBuf(BufferFile^, LengthFile);
-      FStream.Write(BufferFile^, LengthFile);
-      ProgressBar.Position:=(FStream.Size * 100) div FSize;
+      ReceivedFileStream.Write(BufferFile^, LengthFile);
+      ProgressBar.Position:=(ReceivedFileStream.Size * 100) div ReceivedFileSize;
       Socket.SendText('%PROGRESS_BAR ' + IntToStr(ProgressBar.Position) + '%');
 
-      if FStream.Size = FSize then begin //Завершаем если размер соответствует размеру оригигала
-        Receive:=false;
-        FStream.Free;
-        Socket.SendText('%SUCCESS_FILE%');
-        Inc(ReceivedFilesCount);
+      if ReceivedFileStream.Size = ReceivedFileSize then begin // Завершаем если размер соответствует размеру оригигала
+        ReceivingFiles:=false;
+        ReceivedFileStream.Free;
+
+        if ( FileSetDate(CurPath + '\' + ReceivedFileOrFolderName, ReceivedFileDate ) = 0)  and
+               ( GetFileSize( CurPath + '\' + ReceivedFileOrFolderName ) = ReceivedFileSize ) then begin
+                LastReceivingFile:=''; // Очищаем, поскольку файл успешно передан
+                Socket.SendText('%SUCCESS_FILE%');
+                Inc(ReceivedFilesCount);
+                AbortBtn.Enabled:=false;
+         end else begin
+            DeleteFile(CurPath + '\' + ReceivedFileOrFolderName);
+            Socket.SendText('%FILE_CORRUPTED%');
+            AbortBtn.Enabled:=false;
+         end;
+
         if (ReceiveFilesCount = ReceivedFilesCount) then begin
           StatusBar.SimpleText:=' ' + ID_SUCCESS_RECEIVED_FILES;
           ReceivedFilesCount:=0;
-          ProgressBar.Visible:=false;
-          ProgressBar.Position:=0;
+          ReceivedReset;
         end;
       end;
     finally
@@ -380,48 +521,73 @@ begin
     end;
 
   end else begin
-    //Приём команд
+
+    // Приём команд
     RcvText:=Socket.ReceiveText;
 
     if (RcvText[1] = '%') and (RcvText[Length(RcvText)] = '%') and (CountCharStr('%', RcvText) = 2) then begin
 
-      //Создание папки
+      // Создание папки
       if Copy(RcvText, 1, 5) = '%DIR ' then begin
         Delete(RcvText, 1, 5);
-        FName:=Copy(RcvText, 1, Pos('%', RcvText) - 1);
-        if not (DirectoryExists(CurPath + '\' + FName)) then
-          CreateDir(CurPath + '\' + FName);
+        ReceivedFileOrFolderName:=Copy(RcvText, 1, Pos('%', RcvText) - 1);
+        if not (DirectoryExists(CurPath + '\' + ReceivedFileOrFolderName)) then
+          CreateDir(CurPath + '\' + ReceivedFileOrFolderName);
         Socket.SendText('%SUCCESS_DIR%');
       end;
 
-      //Создание файла
+      // Создание файла
       if Copy(RcvText, 1, 6) = '%FILE ' then begin
+      
           Delete(RcvText, 1, 6);
-          FName:=Copy(RcvText, 1, Pos('@', RcvText) - 1);
-          Delete(RcvText, 1, Pos('@', RcvText));
-          FSize:=StrToInt((Copy(RcvText, 1, Pos('%', RcvText) - 1)));
-          FStream:=TFileStream.Create(CurPath + '\' + FName, fmCreate or fmShareDenyWrite);
+          ReceivedFileOrFolderName:=Copy(RcvText, 1, Pos(#9, RcvText) - 1);
+          LastReceivingFile:=ReceivedFileOrFolderName;
 
-          if FSize <> 0 then
-            Receive:=true
-          else begin //Пустые файлы
-            Receive:=false;
-            FStream.Free;
+          Delete(RcvText, 1, Pos(#9, RcvText));
+          ReceivedFileSize:=StrToInt((Copy(RcvText, 1, Pos(#9, RcvText) - 1)));
+
+          //Delete(RcvText, 1, Pos(#9, RcvText));
+          //ReceivedCRC32File:=StrToInt64((Copy(RcvText, 1, Pos(#9, RcvText) - 1))); // Cardinal
+
+          Delete(RcvText, 1, Pos(#9, RcvText));
+          ReceivedFileDate:=StrToInt((Copy(RcvText, 1, Pos('%', RcvText) - 1)));
+
+          ReceivedFileStream:=TFileStream.Create(CurPath + '\' + ReceivedFileOrFolderName, fmCreate or fmShareDenyWrite);
+
+          if ReceivedFileSize <> 0 then begin
+            ReceivingFiles:=true;
+            AbortBtn.Enabled:=true;
+          end else begin // Пустые файлы
+            ReceivingFiles:=false;
+            ReceivedFileStream.Free;
+
             Socket.SendText('%SUCCESS_FILE%');
             Inc(ReceivedFilesCount);
+
+            if ( FileSetDate(CurPath + '\' + ReceivedFileOrFolderName, ReceivedFileDate ) = 0)  and
+               ( GetFileSize( CurPath + '\' + ReceivedFileOrFolderName ) = ReceivedFileSize ) then begin
+                LastReceivingFile:=''; // Очищаем, поскольку файл успешно передан
+                Socket.SendText('%SUCCESS_FILE%');
+                Inc(ReceivedFilesCount);
+                AbortBtn.Enabled:=false;
+            end else begin
+              DeleteFile(CurPath + '\' + ReceivedFileOrFolderName);
+              Socket.SendText('%FILE_CORRUPTED%');
+              AbortBtn.Enabled:=false;
+            end;
+
             if (ReceiveFilesCount = ReceivedFilesCount) then begin
               StatusBar.SimpleText:=' ' + ID_SUCCESS_RECEIVED_FILES;
               ReceivedFilesCount:=0;
-              ProgressBar.Visible:=false;
-              ProgressBar.Position:=0;
+              ReceivedReset;
             end;
           end;
 
-          //Разрешение на передачу файла
+          // Разрешение на передачу файла
           Socket.SendText('%SEND%');
       end;
 
-      //Количество файлов для передачи
+      // Количество файлов для передачи
       if Copy(RcvText, 1, 13) = '%FILES_COUNT ' then begin
         Delete(RcvText, 1, 13);
         ReceiveFilesCount:=StrToInt(Copy(RcvText, 1, Pos('%', RcvText) - 1));
@@ -430,17 +596,17 @@ begin
       end;
 
     end else
-      Socket.SendText('%LAST_REQUEST%'); //В случае неудачи запрашиваем последний запрос повторно 
+      Socket.SendText('%LAST_REQUEST%'); // В случае неудачи запрашиваем последний запрос повторно
 
   end;
 end;
 
-//Добавление папок в список, рекурсивно
+// Добавление папок в список, рекурсивно
 procedure TMain.AddDir(FolderPath: string);
 var
   SR: TSearchRec; FolderPathNew: string;
 begin
-  //Отправляем название новой папки, без полного адреса
+  // Отправляем название новой папки, без полного адреса
   FolderPathNew:=FolderPath;
   Delete(FolderPathNew, 1, Length(LocalPath));
   FileList.Add('DIR ' + FolderPathNew);
@@ -461,66 +627,154 @@ begin
   end;
 end;
 
-//Добавление файлов в список
+// Добавление файлов в список
 procedure TMain.AddFile(FilePath: string);
 begin
   Delete(FilePath, 1, Length(LocalPath));
   FileList.Add('FILE ' + FilePath);
 end;
 
-//Отправка файлов и папок поочередно
+// Отправка файлов и папок поочередно
 procedure TMain.Send;
+var
+  SentFileName: string;
 begin
-  //В случае отмены или неудачи выходим
-  if BreakAll then begin
+  // В случае отмены или неудачи выходим
+  if StopRequest then begin
     StatusBar.SimpleText:=' ' + ID_SEND_FILES_ABORTED;
     Exit;
   end;
 
-  //Список файлов и папок на отправку
+  if ClientSocket.Active = false then begin
+    StatusBar.SimpleText:=' ' + ID_FAIL_CONNECT;
+    Exit;
+  end;
+
+  // Список файлов и папок на отправку
   if FileList.Count > 0 then begin
+
     if Copy(FileList.Strings[0], 1, 5) = 'FILE ' then begin
       ProgressBar.Position:=0;
-      LastFile:=LocalPath + Copy(FileList.Strings[0], 6, Length(FileList.Strings[0]));
-      LastRequest:='%FILE ' + Copy(FileList.Strings[0], 6, Length(FileList.Strings[0])) + '@' + IntToStr(GetFileSize(LocalPath + Copy(FileList.Strings[0], 6, Length(FileList.Strings[0])))) + '%';
+
+      SentFileName:=Copy(FileList.Strings[0], 6, Length(FileList.Strings[0]));
+      LastSendFile:=LocalPath + SentFileName;
+
+      LastRequest:='%FILE ' + SentFileName + #9 +
+                              IntToStr(GetFileSize(LocalPath + SentFileName)) + #9 + // Размер файла
+                              IntToStr(FileAge(LocalPath + SentFileName)) + '%'; // Дата изменения
+
       ClientSocket.Socket.SendText(LastRequest);
     end;
+
     if Copy(FileList.Strings[0], 1, 4) = 'DIR ' then begin
       ProgressBar.Position:=0;
       LastRequest:='%DIR ' + Copy(FileList.Strings[0], 5, Length(FileList.Strings[0])) + '%';
       ClientSocket.Socket.SendText(LastRequest);
     end;
-    FileList.Delete(0); //Удаление после отправки
+
+    FileList.Delete(0); // Удаление после отправки
   end;
   
-  //Все файлы переданы
+  // Все файлы переданы
   if FileList.Count = 0 then begin
     ProgressBar.Visible:=false;
-    StatusBar.SimpleText:=' ' + ID_SUCCESS_SENDED_FILES;
+    StatusBar.SimpleText:=' ' + ID_SUCCESS_SENT_FILES;
+    AbortBtn.Enabled:=false;
     FileList.Clear;
   end;
-end;
-
-procedure TMain.FormKeyDown(Sender: TObject; var Key: Word;
-  Shift: TShiftState);
-begin
-  //Разрешение на отмену
-  if Key = VK_ESCAPE then
-    BreakAll:=true;
 end;
 
 procedure TMain.ServerSocketClientError(Sender: TObject;
   Socket: TCustomWinSocket; ErrorEvent: TErrorEvent;
   var ErrorCode: Integer);
 begin
-  BreakAll:=true;
+  StopRequest:=true;
   case ErrorCode of
     10061: StatusBar.SimpleText:=' ' + ID_FAIL_CONNECT;
   else
     StatusBar.SimpleText:=' ' + ID_CONNECTION_LOST;
   end;
-  RcvFlsRep:=3;
+  ReceivingFilesPermission:=PermissionMissing;
   ErrorCode:=0;
+  ReceivedReset;
+
+  {if Assigned(ReceivedFileStream) then begin
+    FreeAndNil(ReceivedFileStream);
+    ReceivedFileStream:=nil; // В случае прошлой ошибки с приёмом.
+  end;
+
+  if ( FileExists(CurPath + '\' + LastReceivingFile) )  and
+     ( GetFileSize( CurPath + '\' + LastReceivingFile) <> ReceivedFileSize ) then
+    DeleteFile(CurPath + '\' + LastReceivingFile); }
+end;
+
+procedure TMain.AboutBtnClick(Sender: TObject);
+begin
+  Application.MessageBox(PChar(Caption + ' 0.8' + #13#10 +
+  ID_LAST_UPDATE + ': 18.09.2023' + #13#10 +
+  'https://r57zone.github.io' + #13#10 +
+  'r57zone@gmail.com'), PChar(ID_ABOUT_TITLE), MB_ICONINFORMATION);
+end;
+
+procedure TMain.ExitBtnClick(Sender: TObject);
+begin
+  Close;
+end;
+
+procedure TMain.ServerSocketClientDisconnect(Sender: TObject;
+  Socket: TCustomWinSocket);
+begin
+  ReceivedReset;
+
+  {if Assigned(ReceivedFileStream) then begin
+    FreeAndNil(ReceivedFileStream);
+    ReceivedFileStream:=nil; // В случае прошлой ошибки с приёмом.
+  end;
+  
+  if ( FileExists(CurPath + '\' + LastReceivingFile) )  and
+     ( GetFileSize( CurPath + '\' + LastReceivingFile) <> ReceivedFileSize ) then
+    DeleteFile(CurPath + '\' + LastReceivingFile); }
+end;
+
+procedure TMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+begin
+  StopRequest:=true;
+end;
+
+procedure TMain.ClientSocketConnect(Sender: TObject;
+  Socket: TCustomWinSocket);
+begin
+  AbortBtn.Enabled:=true;
+end;
+
+procedure TMain.ReceivedReset;
+begin
+  ProgressBar.Position:=0;
+  ProgressBar.Visible:=false;
+  AbortBtn.Enabled:=false;
+end;
+
+procedure TMain.SentReset;
+begin
+  ProgressBar.Position:=0;
+  ProgressBar.Visible:=false;
+  AbortBtn.Enabled:=false;
+end;
+
+procedure TMain.ConSelBtnClick(Sender: TObject);
+begin
+  ConnectionsForm.ShowModal;
+end;
+
+procedure TMain.SettingsBtnClick(Sender: TObject);
+begin
+  SettingsForm.ShowModal;
+end;
+
+procedure TMain.N5Click(Sender: TObject);
+begin
+  StopRequest:=true;
+  AbortBtn.Enabled:=false;
 end;
 
 end.
