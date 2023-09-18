@@ -103,6 +103,7 @@ end;
 
 procedure TSettingsForm.FormCreate(Sender: TObject);
 begin
+  SetWindowLong(PortEdt.Handle, GWL_STYLE, GetWindowLong(PortEdt.Handle, GWL_STYLE) or ES_NUMBER);
   PortEdt.Text:=IntToStr(Main.ServerSocket.Port);
   Caption:=Main.SettingsBtn.Caption;
   OkBtn.Caption:=ID_OK;
