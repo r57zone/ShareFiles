@@ -45,23 +45,23 @@ object SettingsForm: TSettingsForm
     Width = 206
     Height = 21
     ReadOnly = True
-    TabOrder = 0
+    TabOrder = 2
   end
-  object Button1: TButton
+  object SelectFolderBtn: TButton
     Left = 218
     Top = 23
     Width = 25
     Height = 23
     Caption = '...'
-    TabOrder = 1
-    OnClick = Button1Click
+    TabOrder = 3
+    OnClick = SelectFolderBtnClick
   end
   object PortEdt: TEdit
     Left = 8
     Top = 72
     Width = 57
     Height = 21
-    TabOrder = 2
+    TabOrder = 4
   end
   object AllowIPLB: TListBox
     Left = 8
@@ -69,7 +69,7 @@ object SettingsForm: TSettingsForm
     Width = 234
     Height = 97
     ItemHeight = 13
-    TabOrder = 3
+    TabOrder = 5
     OnMouseDown = AllowIPLBMouseDown
   end
   object OkBtn: TButton
@@ -78,7 +78,7 @@ object SettingsForm: TSettingsForm
     Width = 75
     Height = 25
     Caption = #1054#1050
-    TabOrder = 4
+    TabOrder = 0
     OnClick = OkBtnClick
   end
   object CancelBtn: TButton
@@ -87,7 +87,7 @@ object SettingsForm: TSettingsForm
     Width = 75
     Height = 25
     Caption = #1054#1090#1084#1077#1085#1072
-    TabOrder = 5
+    TabOrder = 1
     OnClick = CancelBtnClick
   end
   object PopupMenu1: TPopupMenu

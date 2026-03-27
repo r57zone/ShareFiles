@@ -11,20 +11,26 @@ type
     ListView: TListView;
     SelectBtn: TButton;
     CancelBtn: TButton;
-    PopupMenu1: TPopupMenu;
-    AddBtn: TMenuItem;
-    EditBtn: TMenuItem;
-    RemBtn: TMenuItem;
+    PopupMenu: TPopupMenu;
+    Add2Btn: TMenuItem;
+    Edit2Btn: TMenuItem;
+    Rem2Btn: TMenuItem;
     Line: TMenuItem;
+    AddBtn: TButton;
+    EditBtn: TButton;
+    RemBtn: TButton;
     procedure ListViewMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure CancelBtnClick(Sender: TObject);
     procedure SelectBtnClick(Sender: TObject);
+    procedure Add2BtnClick(Sender: TObject);
+    procedure Edit2BtnClick(Sender: TObject);
+    procedure Rem2BtnClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure ListViewDblClick(Sender: TObject);
     procedure AddBtnClick(Sender: TObject);
     procedure EditBtnClick(Sender: TObject);
     procedure RemBtnClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
-    procedure ListViewDblClick(Sender: TObject);
   private
     procedure SaveAddressBook;
     { Private declarations }
@@ -45,7 +51,7 @@ procedure TConnectionsForm.ListViewMouseDown(Sender: TObject;
   Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
 begin
   if Button = mbRight then
-    PopupMenu1.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
+    PopupMenu.Popup(Mouse.CursorPos.X, Mouse.CursorPos.Y);
 end;
 
 procedure TConnectionsForm.CancelBtnClick(Sender: TObject);
@@ -60,12 +66,12 @@ begin
   Close;
 end;
 
-procedure TConnectionsForm.AddBtnClick(Sender: TObject);
+procedure TConnectionsForm.Add2BtnClick(Sender: TObject);
 var
   IPAddress, PCName: string;
 begin
-  if (InputQuery(Caption, ID_ENTER_NAME, PCName)) and (Trim(PCName) <> '') and
-     (InputQuery(Caption, ID_ENTER_IP, IPAddress)) and (Trim(IPAddress) <> '') then
+  if (InputQuery(Caption, IDS_ENTER_NAME, PCName)) and (Trim(PCName) <> '') and
+     (InputQuery(Caption, IDS_ENTER_IP, IPAddress)) and (Trim(IPAddress) <> '') then
   begin
     ListView.AddItem(PCName, nil);
     ListView.Items.Item[ListView.Items.Count - 1].SubItems.Add(IPAddress);
@@ -73,17 +79,17 @@ begin
   end;
 end;
 
-procedure TConnectionsForm.EditBtnClick(Sender: TObject);
+procedure TConnectionsForm.Edit2BtnClick(Sender: TObject);
 var
   IPAddress, PCName: string;
 begin
   if ListView.ItemIndex = -1 then Exit;
-  ListView.Items.Item[ListView.ItemIndex].Caption:=InputBox(Caption, ID_ENTER_NAME, ListView.Items.Item[ListView.ItemIndex].Caption);
-  ListView.Items.Item[ListView.ItemIndex].SubItems[0]:=InputBox(Caption, ID_ENTER_IP, ListView.Items.Item[ListView.ItemIndex].SubItems[0]);
+  ListView.Items.Item[ListView.ItemIndex].Caption:=InputBox(Caption, IDS_ENTER_NAME, ListView.Items.Item[ListView.ItemIndex].Caption);
+  ListView.Items.Item[ListView.ItemIndex].SubItems[0]:=InputBox(Caption, IDS_ENTER_IP, ListView.Items.Item[ListView.ItemIndex].SubItems[0]);
   SaveAddressBook;
 end;
 
-procedure TConnectionsForm.RemBtnClick(Sender: TObject);
+procedure TConnectionsForm.Rem2BtnClick(Sender: TObject);
 begin
   if ListView.ItemIndex = -1 then Exit;
   ListView.DeleteSelected;
@@ -95,13 +101,17 @@ var
   TempAddressBook: TStringList; i: integer;
 begin
   Caption:=StringReplace(Main.ConsBtn.Caption, '&', '', []);
-  ListView.Columns[0].Caption:=ID_NAME;
-  ListView.Columns[1].Caption:=ID_IP_ADDRESS;
-  SelectBtn.Caption:=ID_SELECT;
-  CancelBtn.Caption:=ID_CANCEL;
-  AddBtn.Caption:=ID_ADD;
-  EditBtn.Caption:=ID_EDIT;
-  RemBtn.Caption:=ID_REMOVE;
+  ListView.Columns[0].Caption:=IDS_NAME;
+  ListView.Columns[1].Caption:=IDS_IP_ADDRESS;
+  SelectBtn.Caption:=IDS_SELECT;
+  CancelBtn.Caption:=IDS_CANCEL;
+  AddBtn.Caption:=IDS_ADD;
+  Add2Btn.Caption:=IDS_ADD;
+  EditBtn.Caption:=IDS_EDIT;
+  Edit2Btn.Caption:=IDS_EDIT;
+  RemBtn.Caption:=IDS_REMOVE;
+  Rem2Btn.Caption:=IDS_REMOVE;
+
   TempAddressBook:=TStringList.Create;
   TempAddressBook.Text:=StringReplace(AddressBook, ';', #13#10, [rfReplaceAll]);
   for i:=0 to TempAddressBook.Count - 1 do begin
@@ -127,6 +137,21 @@ end;
 procedure TConnectionsForm.ListViewDblClick(Sender: TObject);
 begin
   SelectBtn.Click;
+end;
+
+procedure TConnectionsForm.AddBtnClick(Sender: TObject);
+begin
+  Add2Btn.Click;
+end;
+
+procedure TConnectionsForm.EditBtnClick(Sender: TObject);
+begin
+  Edit2Btn.Click;
+end;
+
+procedure TConnectionsForm.RemBtnClick(Sender: TObject);
+begin
+  Rem2Btn.Click;
 end;
 
 end.

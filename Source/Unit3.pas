@@ -10,7 +10,7 @@ type
   TSettingsForm = class(TForm)
     PathReceiveFilesLbl: TLabel;
     PathEdt: TEdit;
-    Button1: TButton;
+    SelectFolderBtn: TButton;
     PortLbl: TLabel;
     AllowIPLB: TListBox;
     ReceiveAllowIPsLbl: TLabel;
@@ -31,7 +31,7 @@ type
     procedure RemBtnClick(Sender: TObject);
     procedure FormShow(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
+    procedure SelectFolderBtnClick(Sender: TObject);
   private
     { Private declarations }
   public
@@ -57,8 +57,8 @@ var
   Ini: TIniFile;
 begin
   Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Setup.ini');
-  Ini.ReadString('Main', 'Path', PathEdt.Text);
-  CurPath:=PathEdt.Text;
+  Ini.WriteString('Main', 'Path', PathEdt.Text);
+  SavePath:=PathEdt.Text;
   Ini.WriteString('Main', 'IPsWithoutRequest', StringReplace(AllowIPLB.Items.Text, #13#10, ';', [rfReplaceAll]));
   AllowIPs.Text:=AllowIPLB.Items.Text;
   Ini.WriteInteger('Main', 'Port', StrToIntDef(PortEdt.Text, 5371));
@@ -77,7 +77,7 @@ procedure TSettingsForm.AddBtnClick(Sender: TObject);
 var
   IPAddress: string;
 begin
-  if (InputQuery(Caption, ID_ENTER_IP, IPAddress)) and (Trim(IPAddress) <> '') then
+  if (InputQuery(Caption, IDS_ENTER_IP, IPAddress)) and (Trim(IPAddress) <> '') then
     AllowIPLB.Items.Add(IPAddress);
 end;
 
@@ -86,7 +86,7 @@ var
   IPAddress: string;
 begin
   if AllowIPLB.ItemIndex = -1 then Exit;
-  AllowIPLB.Items.Strings[AllowIPLB.ItemIndex]:=InputBox(Caption, ID_ENTER_IP, AllowIPLB.Items.Strings[AllowIPLB.ItemIndex]);
+  AllowIPLB.Items.Strings[AllowIPLB.ItemIndex]:=InputBox(Caption, IDS_ENTER_IP, AllowIPLB.Items.Strings[AllowIPLB.ItemIndex]);
 end;
 
 procedure TSettingsForm.RemBtnClick(Sender: TObject);
@@ -98,7 +98,7 @@ end;
 procedure TSettingsForm.FormShow(Sender: TObject);
 begin
   AllowIPLB.Items.Text:=AllowIPs.Text;
-  PathEdt.Text:=CurPath;
+  PathEdt.Text:=SavePath;
 end;
 
 procedure TSettingsForm.FormCreate(Sender: TObject);
@@ -106,14 +106,14 @@ begin
   SetWindowLong(PortEdt.Handle, GWL_STYLE, GetWindowLong(PortEdt.Handle, GWL_STYLE) or ES_NUMBER);
   PortEdt.Text:=IntToStr(Main.ServerSocket.Port);
   Caption:=Main.SettingsBtn.Caption;
-  OkBtn.Caption:=ID_OK;
-  CancelBtn.Caption:=ID_CANCEL;
-  AddBtn.Caption:=ID_ADD;
-  EditBtn.Caption:=ID_EDIT;
-  RemBtn.Caption:=ID_REMOVE;
-  PathReceiveFilesLbl.Caption:=ID_FOLDER_RECEIVING_FILES;
-  PortLbl.Caption:=ID_PORT;
-  ReceiveAllowIPsLbl.Caption:=ID_IPS_WITOUT_ASKING;
+  OkBtn.Caption:=IDS_OK;
+  CancelBtn.Caption:=IDS_CANCEL;
+  AddBtn.Caption:=IDS_ADD;
+  EditBtn.Caption:=IDS_EDIT;
+  RemBtn.Caption:=IDS_REMOVE;
+  PathReceiveFilesLbl.Caption:=IDS_FOLDER_RECEIVING_FILES;
+  PortLbl.Caption:=IDS_PORT;
+  ReceiveAllowIPsLbl.Caption:=IDS_IPS_WITHOUT_ASKING;
 end;
 
 function BrowseFolderDialog(Title: PChar): string;
@@ -139,11 +139,11 @@ begin
   end;
 end;
 
-procedure TSettingsForm.Button1Click(Sender: TObject);
+procedure TSettingsForm.SelectFolderBtnClick(Sender: TObject);
 var
   TempPath: string; Ini: TIniFile;
 begin
-  TempPath:=BrowseFolderDialog(PChar(ID_SELECT_FOLDER));
+  TempPath:=BrowseFolderDialog(PChar(IDS_SELECT_FOLDER));
   if TempPath = '' then Exit;
   if TempPath[Length(TempPath)] <> '\' then TempPath:=TempPath + '\';
   PathEdt.Text:=TempPath;
