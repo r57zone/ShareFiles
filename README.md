@@ -3,7 +3,7 @@
 ← Choose language | Выберите язык
 
 # ShareFiles
-Application for sharing files over a local network (LAN).
+An app for file sharing on a local network (LAN) with Drag & Drop support.
 
 
 The following languages are supported: English, Russian, Chinese (Simplified, Traditional), Spanish, Portuguese (Brazilian), French, German, Japanese, Arabic, Italian, Korean, Turkish, and Polish.
