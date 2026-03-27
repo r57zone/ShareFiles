@@ -20,7 +20,6 @@
 ![flag-italy](https://github.com/user-attachments/assets/692490d6-bc53-446f-99b8-bf2becb8ec0d)
 ![flag-north-korea](https://github.com/user-attachments/assets/5b315a3d-6ce0-4cbb-b7a3-133ef2bcb2c5)
 ![flag-south-korea](https://github.com/user-attachments/assets/ed3d3778-9193-444a-85fd-ac5dd7bc91c6)
-![flag-south-korea](https://github.com/user-attachments/assets/ed3d3778-9193-444a-85fd-ac5dd7bc91c6)
 ![flag-turkey](https://github.com/user-attachments/assets/b932b6f7-e702-4db2-9993-d0fbf188bbae)
 ![flag-poland](https://github.com/user-attachments/assets/e94d2b22-8d24-4421-a64a-582e02297e96)
 
