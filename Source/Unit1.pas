@@ -111,7 +111,8 @@ var
   SearchFile: TSearchRec;
 begin
    FindFirst(FileName, faAnyFile, SearchFile);
-   Result:=(int64(SearchFile.FindData.nFileSizeHigh) * MAXDWORD) + int64(SearchFile.FindData.nFileSizeLow);
+   //Result:=(int64(SearchFile.FindData.nFileSizeHigh) * MAXDWORD) + int64(SearchFile.FindData.nFileSizeLow);
+   Result:=(int64(SearchFile.FindData.nFileSizeHigh) shl 32) or int64(SearchFile.FindData.nFileSizeLow);
    FindClose(SearchFile);
 end;
 
@@ -550,7 +551,7 @@ begin
       ProgressBar.Position:=(ReceivedFileStream.Size * 100) div ReceivedFileSize;
       //Socket.SendText('%PROGRESS_BAR ' + IntToStr(ProgressBar.Position) + '%');
 
-      if Abs(ProgressBar.Position - LastProgressSent) >= 2 then begin
+      if Abs(ProgressBar.Position - LastProgressSent) > 0 then begin
         Socket.SendText('%PROGRESS_BAR ' + IntToStr(ProgressBar.Position) + '%');
         LastProgressSent:=ProgressBar.Position;
         StatusBar.SimpleText:=Format(' ' + IDS_RECEIVING_FILES, [ReceivedFilesCount, ReceiveFilesCount, ProgressBar.Position]);
@@ -610,7 +611,7 @@ begin
           CurReceivingFile:=ReceivedFileOrFolderName;
 
           Delete(RcvText, 1, Pos(#9, RcvText));
-          ReceivedFileSize:=StrToInt((Copy(RcvText, 1, Pos(#9, RcvText) - 1)));
+          ReceivedFileSize:=StrToInt64((Copy(RcvText, 1, Pos(#9, RcvText) - 1)));
 
           //Delete(RcvText, 1, Pos(#9, RcvText));
           //ReceivedCRC32File:=StrToInt64((Copy(RcvText, 1, Pos(#9, RcvText) - 1))); // Cardinal
@@ -791,8 +792,8 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Caption + ' 1.0' + #13#10 +
-  IDS_LAST_UPDATE + ': 27.03.26' + #13#10 +
+  Application.MessageBox(PChar(Caption + ' 1.0.1' + #13#10 +
+  IDS_LAST_UPDATE + ': 29.03.26' + #13#10 +
   'https://r57zone.github.io' + #13#10 +
   'r57zone@gmail.com'), PChar(IDS_ABOUT_TITLE), MB_ICONINFORMATION);
 end;
