@@ -136,72 +136,17 @@ end;
 procedure TMain.FormCreate(Sender: TObject);
 var
   Ini: TIniFile; i: integer; DebugMode: integer;
-  SystemLang, LangFileName: string;
+  AppFilePath, SystemLang, LangFileName, ForceLangFile: string;
 begin
-  // Translate / Перевод
-  SystemLang:=GetLocaleInformation(LOCALE_SENGLANGUAGE);
-  if SystemLang = 'Chinese' then
-    SystemLang:='Chinese (Simplified)'
-  else if Pos('Spanish', SystemLang) > 0 then
-    SystemLang:='Spanish'
-  else if Pos('Portuguese', SystemLang) > 0 then
-    SystemLang:='Portuguese';
-
-  LangFileName:=SystemLang + '.ini';
-  if not FileExists(ExtractFilePath(ParamStr(0)) + 'Languages\' + LangFileName) then
-    LangFileName:='English.Ini';
-  Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Languages\' + LangFileName);
-
-  FileBtn.Caption:=Ini.ReadString('Main', 'FILE', 'File');
-  SettingsBtn.Caption:=Ini.ReadString('Main', 'SETTINGS', 'Settings');
-  ExitBtn.Caption:=Ini.ReadString('Main', 'EXIT', 'Exit');
-  ConsBtn.Caption:=Ini.ReadString('Main', 'CONNECTIONS', 'Connections');
-  ConSelBtn.Caption:=Ini.ReadString('Main', 'SELECT', 'Select');
-  AbortBtn.Caption:=Ini.ReadString('Main', 'ABORT', 'Abort');
-  HelpBtn.Caption:=Ini.ReadString('Main', 'HELP', 'Help');
-  IDS_ABOUT_TITLE:=Ini.ReadString('Main', 'ABOUT_TITLE', 'About...');
-  AboutBtn.Caption:=IDS_ABOUT_TITLE;
-
-  IDS_CONNECT:=Ini.ReadString('Main', 'CONNECT', 'Connect');
-  IDS_ALLOW_CONNECTION:=Ini.ReadString('Main', 'ALLOW_CONNECTION', 'Allow connection');
-  IDS_NOT_ALLOW_RECEIVE_FILES:=Ini.ReadString('Main', 'NOT_ALLOW_RECEIVE_FILES', 'The user did not approve file transfer');
-  IDS_FAIL_CONNECT:=Ini.ReadString('Main', 'FAIL_CONNECT', 'Failed to connect');
-  IDS_CONNECTION_LOST:=Ini.ReadString('Main', 'CONNECTION_LOST', 'Connection lost');
-  IDS_SENDING_FILES:=Ini.ReadString('Main', 'SENDING_FILES', 'Sending files: %d of %d, %d%%');
-  IDS_SENDING_FILES_ABORTED:=Ini.ReadString('Main', 'SENDING_FILES_ABORTED', 'File sending aborted');
-  IDS_RECEIVING_FILES:=Ini.ReadString('Main', 'RECEIVING_FILES', 'Receiving files: %d of %d, current %d%%');
-  IDS_RECEIVING_FILES_ABORTED:=Ini.ReadString('Main', 'RECEIVING_FILES_ABORTED', 'File receiving aborted');
-  IDS_SUCCESS_RECEIVED_FILES:=Ini.ReadString('Main', 'SUCCESS_RECEIVED_FILES', 'All files received successfully');
-  IDS_SUCCESS_SENT_FILES:=Ini.ReadString('Main', 'SUCCESS_SENT_FILES', 'All files sent successfully');
-
-  IDS_NAME:=Ini.ReadString('Main', 'NAME', 'Name');
-  IDS_IP_ADDRESS:=Ini.ReadString('Main', 'IP_ADDRESS', 'IP address');
-  IDS_ENTER_NAME:=Ini.ReadString('Main', 'ENTER_NAME', 'Enter the title:');
-  IDS_ENTER_IP:=Ini.ReadString('Main', 'ENTER_IP', 'Enter IP address:');
-  IDS_ADD:=Ini.ReadString('Main', 'ADD', 'Add');
-  IDS_EDIT:=Ini.ReadString('Main', 'EDIT', 'Edit');
-  IDS_REMOVE:=Ini.ReadString('Main', 'REMOVE', 'Remove');
-  IDS_SELECT:=Ini.ReadString('Main', 'SELECT', 'Select');
-  IDS_CANCEL:=Ini.ReadString('Main', 'CANCEL', 'Cancel');
-
-  IDS_SELECT_FOLDER:=Ini.ReadString('Main', 'SELECT_FOLDER', 'Select folder');
-  IDS_FOLDER_RECEIVING_FILES:=Ini.ReadString('Main', 'FOLDER_RECEIVING_FILES', 'Folder for receiving files:');
-  IDS_PORT:=Ini.ReadString('Main', 'PORT', 'Port:');
-  IDS_IPS_WITHOUT_ASKING:=Ini.ReadString('Main', 'IPS_WITHOUT_ASKING', 'Receive from the following IPs without asking:');
-  IDS_OK:=Ini.ReadString('Main', 'OK', 'OK');
-
-  IDS_LAST_UPDATE:=Ini.ReadString('Main', 'LAST_UPDATE', 'Last update:');
-  Ini.Free;
-
   DebugMode:=-1;
-  for i:=1 to ParamCount do begin
+  for i:=1 to ParamCount do
     if ParamStr(i) = '-debug' then
-      DebugMode:=StrToIntDef(ParamStr(i + 1), 0);
-
+      DebugMode:=StrToIntDef(ParamStr(i + 1), 0)
     // Адрес передачи по умолчанию
-    if ParamStr(i) = '-d' then
-      CurAddress:=ParamStr(i + 1);
-  end;
+    else if ParamStr(i) = '-d' then
+      CurAddress:=ParamStr(i + 1)
+    else if ParamStr(i) = '-lang' then
+      ForceLangFile:=ParamStr(i + 1);
 
   // Проверка на повторый запуск
   if (DebugMode = -1) and (FindWindow('TMain', 'ShareFiles') <> 0) then begin
@@ -216,8 +161,10 @@ begin
     else
       Caption:=Caption + ' - Client';
   Application.Title:=Caption;
+  AppFilePath:=ExtractFilePath(ParamStr(0));
 
-  Ini:=TIniFile.Create(ExtractFilePath(ParamStr(0)) + 'Setup.ini');
+  // Настройки
+  Ini:=TIniFile.Create(AppFilePath + 'Setup.ini');
   ClientSocket.Port:=Ini.ReadInteger('Main', 'Port', 5371);
   ServerSocket.Port:=Ini.ReadInteger('Main', 'Port', 5371);
   AddressBook:=Ini.ReadString('Main', 'AddressBook', '');
@@ -243,6 +190,66 @@ begin
   end;
 
   DragAcceptFiles(Main.Handle, true);
+
+  // Translate / Перевод
+  SystemLang:=GetLocaleInformation(LOCALE_SENGLANGUAGE);
+  if Pos('Chinese', SystemLang) > 0  then begin
+    if Pos('Traditional', SystemLang) > 0 then
+      SystemLang:='Chinese (Traditional)'
+    else
+      SystemLang:='Chinese (Simplified)';
+  end else if Pos('Spanish', SystemLang) > 0 then
+    SystemLang:='Spanish'
+  else if Pos('Portuguese', SystemLang) > 0 then
+    SystemLang:='Portuguese';
+
+  if ForceLangFile <> '' then SystemLang:=ForceLangFile;
+  LangFileName:=SystemLang + '.ini';
+
+  if not FileExists(AppFilePath + 'Languages\' + LangFileName) then
+    LangFileName:='English.Ini';
+  Ini:=TIniFile.Create(AppFilePath + 'Languages\' + LangFileName);
+
+  FileBtn.Caption:=UTF8ToAnsi(Ini.ReadString('Main', 'FILE', 'File'));
+  SettingsBtn.Caption:=UTF8ToAnsi(Ini.ReadString('Main', 'SETTINGS', 'Settings'));
+  ExitBtn.Caption:=UTF8ToAnsi(Ini.ReadString('Main', 'EXIT', 'Exit'));
+  ConsBtn.Caption:=UTF8ToAnsi(Ini.ReadString('Main', 'CONNECTIONS', 'Connections'));
+  ConSelBtn.Caption:=UTF8ToAnsi(Ini.ReadString('Main', 'SELECT', 'Select'));
+  AbortBtn.Caption:=UTF8ToAnsi(Ini.ReadString('Main', 'ABORT', 'Abort'));
+  HelpBtn.Caption:=UTF8ToAnsi(Ini.ReadString('Main', 'HELP', 'Help'));
+  IDS_ABOUT_TITLE:=UTF8ToAnsi(Ini.ReadString('Main', 'ABOUT_TITLE', 'About...'));
+  AboutBtn.Caption:=IDS_ABOUT_TITLE;
+
+  IDS_CONNECT:=UTF8ToAnsi(Ini.ReadString('Main', 'CONNECT', 'Connect'));
+  IDS_ALLOW_CONNECTION:=UTF8ToAnsi(Ini.ReadString('Main', 'ALLOW_CONNECTION', 'Allow connection'));
+  IDS_NOT_ALLOW_RECEIVE_FILES:=UTF8ToAnsi(Ini.ReadString('Main', 'NOT_ALLOW_RECEIVE_FILES', 'The user did not approve file transfer'));
+  IDS_FAIL_CONNECT:=UTF8ToAnsi(Ini.ReadString('Main', 'FAIL_CONNECT', 'Failed to connect'));
+  IDS_CONNECTION_LOST:=UTF8ToAnsi(Ini.ReadString('Main', 'CONNECTION_LOST', 'Connection lost'));
+  IDS_SENDING_FILES:=UTF8ToAnsi(Ini.ReadString('Main', 'SENDING_FILES', 'Sending files: %d of %d, %d%%'));
+  IDS_SENDING_FILES_ABORTED:=UTF8ToAnsi(Ini.ReadString('Main', 'SENDING_FILES_ABORTED', 'File sending aborted'));
+  IDS_RECEIVING_FILES:=UTF8ToAnsi(Ini.ReadString('Main', 'RECEIVING_FILES', 'Receiving files: %d of %d, current %d%%'));
+  IDS_RECEIVING_FILES_ABORTED:=UTF8ToAnsi(Ini.ReadString('Main', 'RECEIVING_FILES_ABORTED', 'File receiving aborted'));
+  IDS_SUCCESS_RECEIVED_FILES:=UTF8ToAnsi(Ini.ReadString('Main', 'SUCCESS_RECEIVED_FILES', 'All files received successfully'));
+  IDS_SUCCESS_SENT_FILES:=UTF8ToAnsi(Ini.ReadString('Main', 'SUCCESS_SENT_FILES', 'All files sent successfully'));
+
+  IDS_NAME:=UTF8ToAnsi(Ini.ReadString('Main', 'NAME', 'Name'));
+  IDS_IP_ADDRESS:=UTF8ToAnsi(Ini.ReadString('Main', 'IP_ADDRESS', 'IP address'));
+  IDS_ENTER_NAME:=UTF8ToAnsi(Ini.ReadString('Main', 'ENTER_NAME', 'Enter the title:'));
+  IDS_ENTER_IP:=UTF8ToAnsi(Ini.ReadString('Main', 'ENTER_IP', 'Enter IP address:'));
+  IDS_ADD:=UTF8ToAnsi(Ini.ReadString('Main', 'ADD', 'Add'));
+  IDS_EDIT:=UTF8ToAnsi(Ini.ReadString('Main', 'EDIT', 'Edit'));
+  IDS_REMOVE:=UTF8ToAnsi(Ini.ReadString('Main', 'REMOVE', 'Remove'));
+  IDS_SELECT:=UTF8ToAnsi(Ini.ReadString('Main', 'SELECT', 'Select'));
+  IDS_CANCEL:=UTF8ToAnsi(Ini.ReadString('Main', 'CANCEL', 'Cancel'));
+
+  IDS_SELECT_FOLDER:=UTF8ToAnsi(Ini.ReadString('Main', 'SELECT_FOLDER', 'Select folder'));
+  IDS_FOLDER_RECEIVING_FILES:=UTF8ToAnsi(Ini.ReadString('Main', 'FOLDER_RECEIVING_FILES', 'Folder for receiving files:'));
+  IDS_PORT:=UTF8ToAnsi(Ini.ReadString('Main', 'PORT', 'Port:'));
+  IDS_IPS_WITHOUT_ASKING:=UTF8ToAnsi(Ini.ReadString('Main', 'IPS_WITHOUT_ASKING', 'Receive from the following IPs without asking:'));
+  IDS_OK:=UTF8ToAnsi(Ini.ReadString('Main', 'OK', 'OK'));
+
+  IDS_LAST_UPDATE:=UTF8ToAnsi(Ini.ReadString('Main', 'LAST_UPDATE', 'Last update:'));
+  Ini.Free;
 end;
 
 procedure TMain.FormClose(Sender: TObject; var Action: TCloseAction);
@@ -433,7 +440,8 @@ begin
     Delete(RcvText, 1, 14);
     RcvText:=Copy(RcvText, 1, Pos('%', RcvText) - 1);
     ProgressBar.Position:=StrToIntDef(RcvText, 0);
-    StatusBar.SimpleText:=Format(' ' + IDS_SENDING_FILES, [SentFilesCount, SendFilesCount, ProgressBar.Position]);
+    if FileList.Count > 0 then // не перезаписываем статус успеха
+      StatusBar.SimpleText:=Format(' ' + IDS_SENDING_FILES, [SentFilesCount, SendFilesCount, ProgressBar.Position]);
   end;
 end;
 
@@ -792,8 +800,8 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Caption + ' 1.0.1' + #13#10 +
-  IDS_LAST_UPDATE + ': 29.03.26' + #13#10 +
+  Application.MessageBox(PChar(Caption + ' 1.1' + #13#10 +
+  IDS_LAST_UPDATE + ': 14.05.26' + #13#10 +
   'https://r57zone.github.io' + #13#10 +
   'r57zone@gmail.com'), PChar(IDS_ABOUT_TITLE), MB_ICONINFORMATION);
 end;

@@ -12,25 +12,19 @@ type
     SelectBtn: TButton;
     CancelBtn: TButton;
     PopupMenu: TPopupMenu;
-    Add2Btn: TMenuItem;
-    Edit2Btn: TMenuItem;
-    Rem2Btn: TMenuItem;
+    AddBtn: TMenuItem;
+    EditBtn: TMenuItem;
+    RemBtn: TMenuItem;
     Line: TMenuItem;
-    AddBtn: TButton;
-    EditBtn: TButton;
-    RemBtn: TButton;
     procedure ListViewMouseDown(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure CancelBtnClick(Sender: TObject);
     procedure SelectBtnClick(Sender: TObject);
-    procedure Add2BtnClick(Sender: TObject);
-    procedure Edit2BtnClick(Sender: TObject);
-    procedure Rem2BtnClick(Sender: TObject);
-    procedure FormCreate(Sender: TObject);
-    procedure ListViewDblClick(Sender: TObject);
     procedure AddBtnClick(Sender: TObject);
     procedure EditBtnClick(Sender: TObject);
     procedure RemBtnClick(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure ListViewDblClick(Sender: TObject);
   private
     procedure SaveAddressBook;
     { Private declarations }
@@ -66,7 +60,7 @@ begin
   Close;
 end;
 
-procedure TConnectionsForm.Add2BtnClick(Sender: TObject);
+procedure TConnectionsForm.AddBtnClick(Sender: TObject);
 var
   IPAddress, PCName: string;
 begin
@@ -79,7 +73,7 @@ begin
   end;
 end;
 
-procedure TConnectionsForm.Edit2BtnClick(Sender: TObject);
+procedure TConnectionsForm.EditBtnClick(Sender: TObject);
 var
   IPAddress, PCName: string;
 begin
@@ -89,7 +83,7 @@ begin
   SaveAddressBook;
 end;
 
-procedure TConnectionsForm.Rem2BtnClick(Sender: TObject);
+procedure TConnectionsForm.RemBtnClick(Sender: TObject);
 begin
   if ListView.ItemIndex = -1 then Exit;
   ListView.DeleteSelected;
@@ -106,11 +100,8 @@ begin
   SelectBtn.Caption:=IDS_SELECT;
   CancelBtn.Caption:=IDS_CANCEL;
   AddBtn.Caption:=IDS_ADD;
-  Add2Btn.Caption:=IDS_ADD;
   EditBtn.Caption:=IDS_EDIT;
-  Edit2Btn.Caption:=IDS_EDIT;
   RemBtn.Caption:=IDS_REMOVE;
-  Rem2Btn.Caption:=IDS_REMOVE;
 
   TempAddressBook:=TStringList.Create;
   TempAddressBook.Text:=StringReplace(AddressBook, ';', #13#10, [rfReplaceAll]);
@@ -137,21 +128,6 @@ end;
 procedure TConnectionsForm.ListViewDblClick(Sender: TObject);
 begin
   SelectBtn.Click;
-end;
-
-procedure TConnectionsForm.AddBtnClick(Sender: TObject);
-begin
-  Add2Btn.Click;
-end;
-
-procedure TConnectionsForm.EditBtnClick(Sender: TObject);
-begin
-  Edit2Btn.Click;
-end;
-
-procedure TConnectionsForm.RemBtnClick(Sender: TObject);
-begin
-  Rem2Btn.Click;
 end;
 
 end.
