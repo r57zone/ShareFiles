@@ -440,7 +440,7 @@ begin
     Delete(RcvText, 1, 14);
     RcvText:=Copy(RcvText, 1, Pos('%', RcvText) - 1);
     ProgressBar.Position:=StrToIntDef(RcvText, 0);
-    if FileList.Count > 0 then // не перезаписываем статус успеха
+    if SentFilesCount < SendFilesCount then // не перезаписываем статус успеха
       StatusBar.SimpleText:=Format(' ' + IDS_SENDING_FILES, [SentFilesCount, SendFilesCount, ProgressBar.Position]);
   end;
 end;
@@ -559,7 +559,7 @@ begin
       ProgressBar.Position:=(ReceivedFileStream.Size * 100) div ReceivedFileSize;
       //Socket.SendText('%PROGRESS_BAR ' + IntToStr(ProgressBar.Position) + '%');
 
-      if Abs(ProgressBar.Position - LastProgressSent) > 0 then begin
+      if (ProgressBar.Position <> LastProgressSent) or (ProgressBar.Position = 0) then begin
         Socket.SendText('%PROGRESS_BAR ' + IntToStr(ProgressBar.Position) + '%');
         LastProgressSent:=ProgressBar.Position;
         StatusBar.SimpleText:=Format(' ' + IDS_RECEIVING_FILES, [ReceivedFilesCount, ReceiveFilesCount, ProgressBar.Position]);
@@ -800,8 +800,8 @@ end;
 
 procedure TMain.AboutBtnClick(Sender: TObject);
 begin
-  Application.MessageBox(PChar(Caption + ' 1.1' + #13#10 +
-  IDS_LAST_UPDATE + ': 14.05.26' + #13#10 +
+  Application.MessageBox(PChar(Caption + ' 1.2' + #13#10 +
+  IDS_LAST_UPDATE + ': 30.05.26' + #13#10 +
   'https://r57zone.github.io' + #13#10 +
   'r57zone@gmail.com'), PChar(IDS_ABOUT_TITLE), MB_ICONINFORMATION);
 end;
